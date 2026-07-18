@@ -1,0 +1,134 @@
+/* Cápsulas principais */
+
+#left,
+#center,
+#system {
+    background: @bg;
+
+    margin-top: 5px;
+    margin-bottom: 5px;
+
+    border-radius: 16px;
+}
+
+/* Grupo esquerdo */
+
+#left {
+    margin-left: 6px;
+    padding: 0 5px;
+}
+
+/* Grupo central */
+
+#center {
+    padding: 0 8px;
+}
+
+/* Grupo direito */
+
+#system {
+    margin-right: 6px;
+    padding: 0 7px;
+}
+
+/* Remover fundo individual dos módulos */
+
+#workspaces,
+#window,
+#clock,
+#cpu,
+#memory,
+#network,
+#bluetooth,
+#pulseaudio,
+#battery {
+    background: transparent;
+
+    margin: 0;
+    border-radius: 0;
+}
+
+/* Janela */
+
+#window {
+    color: @subtext;
+    padding: 0 9px;
+}
+
+/* Relógio */
+
+#clock {
+    color: @text;
+    font-weight: 700;
+    padding: 0 11px;
+}
+
+/* Módulos do sistema */
+
+#tray,
+#cpu,
+#memory,
+#network,
+#pulseaudio,
+#battery {
+    padding: 0 6px;
+}
+
+#cpu {
+    color: @blue;
+}
+
+#memory {
+    color: @mauve;
+}
+
+#network {
+    color: @teal;
+}
+
+#pulseaudio {
+    color: @yellow;
+}
+
+#battery {
+    color: @green;
+}
+
+#battery.charging,
+#battery.plugged {
+    color: @blue;
+}
+
+#battery.warning:not(.charging) {
+    color: @peach;
+}
+
+#battery.critical:not(.charging) {
+    color: @red;
+}
+
+#pulseaudio.muted,
+#network.disconnected {
+    color: @muted;
+}
+
+#bluetooth {
+    color: @blue;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+#bluetooth.off,
+#bluetooth.disabled {
+    color: @muted;
+}
+
+#bluetooth.connected {
+    color: @teal;
+}
+
+#bluetooth.discoverable,
+#bluetooth.discovering,
+#bluetooth.pairable {
+    color: @yellow;
+}

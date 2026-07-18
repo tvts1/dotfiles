@@ -1,0 +1,93 @@
+# Base
+base-devel
+git
+stow
+
+# Hyprland
+hyprland
+hyprpaper
+hyprlock
+hypridle
+xdg-desktop-portal-hyprland
+xorg-xwayland
+
+# Desktop bar and notifications
+waybar
+swaync
+libnotify
+
+# Terminal and shell
+kitty
+fish
+starship
+zoxide
+
+# Command-line utilities
+eza
+bat
+fzf
+fd
+ripgrep
+fastfetch
+btop
+jq
+unzip
+zip
+tar
+
+# Clipboard and screenshots
+wl-clipboard
+cliphist
+hyprshot
+grim
+slurp
+
+# Audio
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+pavucontrol
+
+# Network
+networkmanager
+network-manager-applet
+
+# Bluetooth
+bluez
+bluez-utils
+blueman
+
+# File manager
+thunar
+thunar-archive-plugin
+thunar-volman
+tumbler
+ffmpegthumbnailer
+poppler-glib
+file-roller
+gvfs
+gvfs-mtp
+
+# Desktop integration
+xdg-user-dirs
+xdg-utils
+polkit-gnome
+nwg-look
+gsimplecal
+
+# Images and documents
+imv
+zathura
+zathura-pdf-mupdf
+
+# Fonts and icons
+ttf-jetbrains-mono-nerd
+noto-fonts
+noto-fonts-emoji
+papirus-icon-theme
+
+# Power and laptop utilities
+brightnessctl
+playerctl
+upower

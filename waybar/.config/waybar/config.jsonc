@@ -1,0 +1,181 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 36,
+    "spacing": 0,
+
+    "modules-left": [
+        "group/left"
+    ],
+
+    "modules-center": [
+        "group/center"
+    ],
+
+    "modules-right": [
+        "group/system"
+    ],
+
+    "group/left": {
+        "orientation": "horizontal",
+        "modules": [
+            "hyprland/workspaces",
+            "hyprland/window"
+        ]
+    },
+
+    "group/center": {
+        "orientation": "horizontal",
+        "modules": [
+            "clock"
+        ]
+    },
+
+    "group/system": {
+        "orientation": "horizontal",
+        "modules": [
+            "cpu",
+            "memory",
+            "network",
+	    "bluetooth",
+            "pulseaudio",
+            "battery"
+        ]
+    },
+
+    "hyprland/workspaces": {
+        "disable-scroll": true,
+        "all-outputs": true,
+        "sort-by-number": true,
+        "format": "{icon}",
+
+        "format-icons": {
+            "active": "󰮯",
+            "default": "•",
+            "urgent": "󰀦"
+        }
+    },
+
+    "hyprland/window": {
+        "format": "  {title}",
+        "max-length": 38,
+        "separate-outputs": true,
+
+        "rewrite": {
+            "(.*) — Mozilla Firefox": "$1",
+            "(.*) - Visual Studio Code": "$1",
+            "(.*) - VSCodium": "$1",
+            "(.*) — Zen Browser": "$1",
+            "": "Desktop"
+        }
+    },
+
+    "clock": {
+        "interval": 1,
+        "format": "󰥔  {:%H:%M  ·  %d/%m/%Y}",
+        "on-click": "gsimplecal",
+
+        "tooltip-format": "<big>{:%B de %Y}</big>\n\n<tt>{calendar}</tt>",
+
+        "calendar": {
+            "mode": "month",
+            "weeks-pos": "right",
+            "on-scroll": 1,
+
+            "format": {
+                "months": "<span weight='bold' color='#8AADF4'>{}</span>",
+                "days": "<span color='#CAD3F5'>{}</span>",
+                "weeks": "<span color='#6E738D'>S{}</span>",
+                "weekdays": "<span weight='bold' color='#A6DA95'>{}</span>",
+                "today": "<span weight='bold' color='#EED49F'><u>{}</u></span>"
+            }
+        }
+    },
+
+    "cpu": {
+        "interval": 2,
+        "format": " {usage}%",
+        "tooltip": true
+    },
+
+    "memory": {
+        "interval": 2,
+        "format": " {percentage}%",
+        "tooltip": true
+    },
+
+    "network": {
+        "interval": 5,
+        "format-wifi": "  {essid}",
+        "format-ethernet": "󰈀  Ethernet",
+        "format-disconnected": "󰖪",
+
+        "tooltip-format-wifi": "{essid}\nIP: {ipaddr}\nSinal: {signalStrength}%",
+        "tooltip-format-ethernet": "IP: {ipaddr}",
+        "tooltip-format-disconnected": "No connection",
+
+        "on-click": "kitty -e nmtui"
+    },
+    "bluetooth": {
+    "format": "",
+    "format-disabled": "󰂲",
+    "format-off": "󰂲",
+    "format-on": "",
+    "format-connected": " {num_connections}",
+    "format-connected-battery": " {device_battery_percentage}%",
+
+    "tooltip-format": "Bluetooth: {status}",
+    "tooltip-format-connected": "{controller_alias}\n{num_connections} connected device(s)\n\n{device_enumerate}",
+    "tooltip-format-enumerate-connected": "{device_alias}",
+    "tooltip-format-enumerate-connected-battery": "{device_alias}: {device_battery_percentage}%",
+
+    "on-click": "blueman-manager"
+},
+
+    "pulseaudio": {
+        "scroll-step": 5,
+        "format": "{icon} {volume}%",
+        "format-muted": "󰖁 mute",
+
+        "format-icons": {
+            "headphone": "",
+            "headset": "󰋎",
+
+            "default": [
+                "",
+                "",
+                ""
+            ]
+        },
+
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click-right": "pavucontrol"
+    },
+
+    "battery": {
+        "interval": 30,
+
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": "󰚥 {capacity}%",
+
+        "format-icons": [
+            "󰁺",
+            "󰁻",
+            "󰁼",
+            "󰁽",
+            "󰁾",
+            "󰁿",
+            "󰂀",
+            "󰂁",
+            "󰂂",
+            "󰁹"
+        ]
+    },
+
+}

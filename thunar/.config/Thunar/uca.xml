@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>1783989048238571-1</unique-id>
+	<command>kitty --directory %f</command>
+	<description>Example for a custom action</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>nvim</icon>
+	<name>Open in Neovim</name>
+	<submenu></submenu>
+	<unique-id>1783993487828022-1</unique-id>
+	<command>kitty --directory %f nvim .</command>
+	<description>Open this directory as a project</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+<action>
+	<icon>preferences-system-search</icon>
+	<name>Search Here</name>
+	<submenu></submenu>
+	<unique-id>1783993569751182-2</unique-id>
+	<command>catfish --path=%f</command>
+	<description>Search files inside this directory
+</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+</actions>

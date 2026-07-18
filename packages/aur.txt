@@ -1,0 +1,9 @@
+# Application launcher
+walker-bin
+elephant
+
+# Cursor
+bibata-cursor-theme
+
+# GTK theme
+colloid-gtk-theme-git

@@ -1,0 +1,27 @@
+* {
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 13px;
+    font-weight: 500;
+
+    min-height: 0;
+
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: transparent;
+    color: @text;
+}
+
+tooltip {
+    background: @bg;
+    color: @text;
+
+    border: 1px solid @surface-hover;
+    border-radius: 12px;
+}
+
+tooltip label {
+    padding: 8px;
+}
