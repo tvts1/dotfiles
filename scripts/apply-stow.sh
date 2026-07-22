@@ -11,6 +11,7 @@ modules=(
     gtk
     hypr
     kitty
+    nvim
     starship
     thunar
     walker

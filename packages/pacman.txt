@@ -91,3 +91,11 @@ papirus-icon-theme
 brightnessctl
 playerctl
 upower
+
+# Neovim and development tools
+neovim
+lazygit
+tree-sitter-cli
+gcc
+make
+

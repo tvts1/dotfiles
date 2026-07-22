@@ -71,3 +71,11 @@ secrets/
 private/
 credentials/
 **/fish_variables
+
+# Fisher generated files
+fish/.config/fish/conf.d/sdk.fish
+fish/.config/fish/completions/fisher.fish
+fish/.config/fish/completions/sdk.fish
+fish/.config/fish/functions/fisher.fish
+fish/.config/fish/functions/sdk.fish
+fish/.config/fish/functions/__sdkman-noexport-init.sh
