@@ -9,8 +9,14 @@ set -gx BROWSER firefox
 set -gx PAGER bat
 
 # Locale
-set -gx LANG en_US.UTF-8
+if type -q locale
+    if locale -a | string match -q -- en_US.utf8 en_US.UTF-8
+        set -gx LANG en_US.UTF-8
+    end
+end
 
 # Volta - Node.js toolchain manager
 set -gx VOLTA_HOME "$HOME/.volta"
-fish_add_path "$VOLTA_HOME/bin"
+if test -d "$VOLTA_HOME/bin"
+    fish_add_path "$VOLTA_HOME/bin"
+end

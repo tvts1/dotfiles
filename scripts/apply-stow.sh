@@ -25,11 +25,57 @@ if ! command_exists stow; then
     exit 1
 fi
 
+target_points_to_source() {
+    local target="$1"
+    local source="$2"
+    local target_resolved source_resolved
+
+    target_resolved="$(readlink -f -- "$target" 2>/dev/null || true)"
+    source_resolved="$(readlink -f -- "$source" 2>/dev/null || true)"
+
+    [[ -n "$target_resolved" && -n "$source_resolved" && "$target_resolved" == "$source_resolved" ]]
+}
+
+detect_and_backup_conflicts() {
+    local module="$1"
+    local source rel target
+
+    while IFS= read -r -d '' source; do
+        rel="${source#"$DOTFILES_DIR/$module"/}"
+        target="$HOME/$rel"
+
+        if [[ ! -e "$target" && ! -L "$target" ]]; then
+            continue
+        fi
+
+        if target_points_to_source "$target" "$source"; then
+            continue
+        fi
+
+        if [[ -L "$target" ]] && path_is_within_dotfiles "$target"; then
+            backup_path "$target"
+            continue
+        fi
+
+        if [[ -f "$target" || -L "$target" ]]; then
+            backup_path "$target"
+        fi
+    done < <(
+        find "$DOTFILES_DIR/$module" \( -type f -o -type l \) \
+            ! -name '.stow-local-ignore' \
+            ! -name '*.tmpl' \
+            -print0
+    )
+}
+
 for module in "${modules[@]}"; do
     if [[ -d "$DOTFILES_DIR/$module" ]]; then
+        detect_and_backup_conflicts "$module"
+
         stow \
             --dir="$DOTFILES_DIR" \
             --target="$HOME" \
+            --no-folding \
             --restow \
             "$module"
 
@@ -38,3 +84,5 @@ for module in "${modules[@]}"; do
         warning "Module not found: $module"
     fi
 done
+
+print_backups

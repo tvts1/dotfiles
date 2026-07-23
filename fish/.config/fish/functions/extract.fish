@@ -1,38 +1,80 @@
 function extract
-    if test -f $argv[1]
-        switch $argv[1]
-            case "*.tar.bz2"
-                tar xjf $argv[1]
+    if test (count $argv) -ne 1
+        echo "Usage: extract <archive>" >&2
+        return 2
+    end
 
-            case "*.tar.gz"
-                tar xzf $argv[1]
+    set -l archive $argv[1]
 
-            case "*.bz2"
-                bunzip2 $argv[1]
+    if not test -e "$archive"
+        echo "extract: file not found: $archive" >&2
+        return 1
+    end
 
-            case "*.rar"
-                unrar x $argv[1]
+    if not test -f "$archive"
+        echo "extract: not a regular file: $archive" >&2
+        return 1
+    end
 
-            case "*.gz"
-                gunzip $argv[1]
+    switch (string lower -- "$archive")
+        case "*.tar.bz2" "*.tbz2"
+            type -q tar; or begin
+                echo "extract: tar is required for $archive" >&2
+                return 127
+            end
+            tar xjf "$archive"
 
-            case "*.tar"
-                tar xf $argv[1]
+        case "*.tar.gz" "*.tgz"
+            type -q tar; or begin
+                echo "extract: tar is required for $archive" >&2
+                return 127
+            end
+            tar xzf "$archive"
 
-            case "*.tbz2"
-                tar xjf $argv[1]
+        case "*.bz2"
+            type -q bunzip2; or begin
+                echo "extract: bunzip2 is required for $archive" >&2
+                return 127
+            end
+            bunzip2 "$archive"
 
-            case "*.tgz"
-                tar xzf $argv[1]
+        case "*.rar"
+            type -q unrar; or begin
+                echo "extract: unrar is required for $archive" >&2
+                return 127
+            end
+            unrar x "$archive"
 
-            case "*.zip"
-                unzip $argv[1]
+        case "*.gz"
+            type -q gunzip; or begin
+                echo "extract: gunzip is required for $archive" >&2
+                return 127
+            end
+            gunzip "$archive"
 
-            case "*.7z"
-                7z x $argv[1]
+        case "*.tar"
+            type -q tar; or begin
+                echo "extract: tar is required for $archive" >&2
+                return 127
+            end
+            tar xf "$archive"
 
-            case "*"
-                echo "Unsupported archive"
-        end
+        case "*.zip"
+            type -q unzip; or begin
+                echo "extract: unzip is required for $archive" >&2
+                return 127
+            end
+            unzip "$archive"
+
+        case "*.7z"
+            type -q 7z; or begin
+                echo "extract: 7z is required for $archive" >&2
+                return 127
+            end
+            7z x "$archive"
+
+        case "*"
+            echo "extract: unsupported archive: $archive" >&2
+            return 1
     end
 end

@@ -12,7 +12,7 @@ fi
 
 log "Installing Paru"
 
-sudo pacman -S --needed --noconfirm base-devel git
+sudo pacman -Syu --needed --noconfirm base-devel git
 
 BUILD_DIR="$(mktemp -d)"
 
