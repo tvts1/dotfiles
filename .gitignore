@@ -60,8 +60,19 @@ Thumbs.db
 
 *.pem
 *.key
+*.crt
+*.cer
+*.der
 *.p12
 *.pfx
+*.kdbx
+*.age
+*.gpg
+*.asc
+.ssh/
+**/.ssh/
+.gnupg/
+**/.gnupg/
 
 # ==========================================================
 # Secrets
@@ -71,6 +82,7 @@ secrets/
 private/
 credentials/
 **/fish_variables
+**/*_history
 
 # Fisher generated files
 fish/.config/fish/conf.d/sdk.fish
@@ -79,3 +91,6 @@ fish/.config/fish/completions/sdk.fish
 fish/.config/fish/functions/fisher.fish
 fish/.config/fish/functions/sdk.fish
 fish/.config/fish/functions/__sdkman-noexport-init.sh
+
+# Generated Hypr files
+hypr/.config/hypr/hyprlock.conf

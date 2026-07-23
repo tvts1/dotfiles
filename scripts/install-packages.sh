@@ -29,11 +29,8 @@ install_official_packages() {
         return
     fi
 
-    log "Updating package database"
-    sudo pacman -Sy --noconfirm
-
-    log "Installing official packages"
-    sudo pacman -S --needed --noconfirm "${packages[@]}"
+    log "Upgrading system and installing official packages"
+    sudo pacman -Syu --needed --noconfirm "${packages[@]}"
 
     success "Official packages installed"
 }

@@ -9,14 +9,43 @@ LOGOUT="󰍃  Log out"
 REBOOT="󰜉  Reboot"
 SHUTDOWN="󰐥  Shut down"
 
+can_hibernate() {
+    local value
+
+    if command -v busctl >/dev/null 2>&1; then
+        value="$(
+            busctl get-property \
+                org.freedesktop.login1 \
+                /org/freedesktop/login1 \
+                org.freedesktop.login1.Manager \
+                CanHibernate 2>/dev/null |
+                awk '{print $2}' |
+                tr -d '"'
+        )"
+
+        [[ "$value" == "yes" || "$value" == "challenge" ]] && return 0
+    fi
+
+    [[ -r /sys/power/state ]] && grep -qw disk /sys/power/state
+}
+
+options=(
+    "$LOCK"
+    "$SUSPEND"
+)
+
+if can_hibernate; then
+    options+=("$HIBERNATE")
+fi
+
+options+=(
+    "$LOGOUT"
+    "$REBOOT"
+    "$SHUTDOWN"
+)
+
 selected="$(
-    printf '%s\n' \
-        "$LOCK" \
-        "$SUSPEND" \
-        "$HIBERNATE" \
-        "$LOGOUT" \
-        "$REBOOT" \
-        "$SHUTDOWN" |
+    printf '%s\n' "${options[@]}" |
         walker --dmenu --exit
 )"
 

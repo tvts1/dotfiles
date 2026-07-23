@@ -21,6 +21,7 @@ kitty
 fish
 starship
 zoxide
+firefox
 
 # Command-line utilities
 eza
@@ -34,6 +35,9 @@ jq
 unzip
 zip
 tar
+unrar
+7zip
+gzip
 
 # Clipboard and screenshots
 wl-clipboard
@@ -98,4 +102,5 @@ lazygit
 tree-sitter-cli
 gcc
 make
-
+bzip2
+systemd
