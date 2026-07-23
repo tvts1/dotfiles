@@ -91,3 +91,6 @@ fish/.config/fish/completions/sdk.fish
 fish/.config/fish/functions/fisher.fish
 fish/.config/fish/functions/sdk.fish
 fish/.config/fish/functions/__sdkman-noexport-init.sh
+
+# Generated Hypr files
+hypr/.config/hypr/hyprlock.conf

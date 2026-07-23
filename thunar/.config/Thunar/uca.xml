@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
 <action>
+	<icon>preferences-desktop-wallpaper</icon>
+	<name>Set as wallpaper</name>
+	<submenu></submenu>
+	<unique-id>1783999000000000-1</unique-id>
+	<command>sh -c '&quot;$HOME/.config/hypr/scripts/set-wallpaper.sh&quot; &quot;$1&quot;' _ %f</command>
+	<description>Set the selected image as the wallpaper</description>
+	<range>1-1</range>
+	<patterns>*.jpg;*.jpeg;*.png;*.webp;*.jxl;*.JPG;*.JPEG;*.PNG;*.WEBP;*.JXL</patterns>
+	<image-files/>
+</action>
+<action>
 	<icon>utilities-terminal</icon>
 	<name>Open Terminal Here</name>
 	<submenu></submenu>

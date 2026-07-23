@@ -36,12 +36,33 @@ target_points_to_source() {
     [[ -n "$target_resolved" && -n "$source_resolved" && "$target_resolved" == "$source_resolved" ]]
 }
 
+source_is_generated_or_ignored() {
+    local module="$1"
+    local rel="$2"
+
+    case "$module:$rel" in
+        hypr:.config/hypr/hyprlock.conf | \
+        gtk:.config/gtk-4.0/assets | \
+        gtk:.config/gtk-4.0/gtk.css | \
+        gtk:.config/gtk-4.0/gtk-dark.css)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
 detect_and_backup_conflicts() {
     local module="$1"
     local source rel target
 
     while IFS= read -r -d '' source; do
         rel="${source#"$DOTFILES_DIR/$module"/}"
+
+        if source_is_generated_or_ignored "$module" "$rel"; then
+            continue
+        fi
+
         target="$HOME/$rel"
 
         if [[ ! -e "$target" && ! -L "$target" ]]; then
@@ -64,6 +85,7 @@ detect_and_backup_conflicts() {
         find "$DOTFILES_DIR/$module" \( -type f -o -type l \) \
             ! -name '.stow-local-ignore' \
             ! -name '*.tmpl' \
+            ! -path "$DOTFILES_DIR/hypr/.config/hypr/hyprlock.conf" \
             -print0
     )
 }
