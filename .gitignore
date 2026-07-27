@@ -34,7 +34,6 @@ Thumbs.db
 # Históricos
 # ==========================================================
 
-**/fish_history
 **/history
 **/recently-used.xbel
 
@@ -81,16 +80,11 @@ Thumbs.db
 secrets/
 private/
 credentials/
-**/fish_variables
 **/*_history
 
-# Fisher generated files
-fish/.config/fish/conf.d/sdk.fish
-fish/.config/fish/completions/fisher.fish
-fish/.config/fish/completions/sdk.fish
-fish/.config/fish/functions/fisher.fish
-fish/.config/fish/functions/sdk.fish
-fish/.config/fish/functions/__sdkman-noexport-init.sh
-
-# Generated Hypr files
+# Generated user-specific files
 hypr/.config/hypr/hyprlock.conf
+hypr/.config/hypr/current-wallpaper
+gtk/.config/gtk-4.0/assets
+gtk/.config/gtk-4.0/gtk.css
+gtk/.config/gtk-4.0/gtk-dark.css
