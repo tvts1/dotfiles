@@ -55,8 +55,10 @@ elephant listproviders
 systemctl --user status elephant.service --no-pager
 ```
 
-Hyprland starts Walker once with `walker --gapplication-service`. It does not
-start Elephant directly.
+Hyprland asks the systemd user manager to start `elephant.service`, then starts
+Walker once with `walker --gapplication-service`. This keeps Elephant under
+systemd supervision even when the Hyprland session does not activate
+`graphical-session.target`.
 
 ## Thunar Wallpaper Plugin
 

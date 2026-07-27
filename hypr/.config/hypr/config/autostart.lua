@@ -10,6 +10,7 @@ hl.on("hyprland.start", function()
     )
     hl.exec_cmd("hypridle")
 
+    hl.exec_cmd("systemctl --user start elephant.service")
     hl.exec_cmd("walker --gapplication-service")
 
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
