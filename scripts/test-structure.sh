@@ -306,6 +306,7 @@ fi
 ok "wallpaper startup is centralized in the repository scripts"
 
 for script in \
+    scripts/configure-default-shell.sh \
     scripts/configure-elephant.sh \
     scripts/disable-thunar-wallpaper-plugin.sh \
     scripts/restore-thunar-wallpaper-plugin.sh \
@@ -313,6 +314,14 @@ for script in \
     assert_file_executable "$script"
     bash -n "$script"
 done
+[[ "$(grep -c 'scripts/configure-default-shell\.sh' install.sh)" == "1" ]] ||
+    fail "installer must configure the default shell exactly once"
+grep -Fq 'chsh -s "$zsh_shell" "$account_name"' scripts/configure-default-shell.sh ||
+    fail "default shell script does not apply the validated Zsh path"
+if command -v zsh >/dev/null 2>&1; then
+    bash scripts/configure-default-shell.sh --dry-run >/dev/null
+fi
+ok "default shell configuration is wired once and validates safely in dry-run mode"
 grep -Fq 'NoExtract = usr/lib/thunarx-3/thunar-wallpaper-plugin.so' docs/thunar-wallpaper-plugin.md ||
     fail "Thunar plugin NoExtract restoration documentation is missing"
 ok "new administrative scripts exist, are executable, and are documented"

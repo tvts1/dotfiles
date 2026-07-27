@@ -14,7 +14,7 @@ executado novamente sem substituir arquivos pessoais silenciosamente.
 - zoxide, FZF, SDKMAN e Volta
 
 O Kitty não define um shell próprio: ele usa o shell padrão da conta. O
-instalador configura o Zsh, mas não altera o shell de login do usuário.
+instalador configura o Zsh e o define como shell de login do usuário.
 
 ## Pré-requisitos
 
@@ -36,8 +36,9 @@ Para incluir a toolchain opcional de Java e Node:
 ./install.sh --with-dev-tools
 ```
 
-O instalador não remove arquivos pessoais, não muda o shell de login e registra
-conflitos em `~/.dotfiles-backup/<timestamp>/`.
+O instalador não remove arquivos pessoais e registra conflitos em
+`~/.dotfiles-backup/<timestamp>/`. Se necessário, `chsh` solicitará a senha do
+usuário para definir o Zsh; a mudança aparece em novos logins.
 
 ## Módulos
 
