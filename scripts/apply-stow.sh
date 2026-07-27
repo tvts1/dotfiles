@@ -7,7 +7,6 @@ source "$SCRIPT_DIR/common.sh"
 
 modules=(
     desktop
-    fish
     gtk
     hypr
     kitty
@@ -16,6 +15,7 @@ modules=(
     thunar
     walker
     waybar
+    zsh
 )
 
 log "Applying dotfiles with GNU Stow"
@@ -24,6 +24,13 @@ if ! command_exists stow; then
     error "GNU Stow is not installed."
     exit 1
 fi
+
+for module in "${modules[@]}"; do
+    if [[ ! -d "$DOTFILES_DIR/$module" ]]; then
+        error "Configured Stow module does not exist: $module"
+        exit 1
+    fi
+done
 
 target_points_to_source() {
     local target="$1"
@@ -42,6 +49,7 @@ source_is_generated_or_ignored() {
 
     case "$module:$rel" in
         hypr:.config/hypr/hyprlock.conf | \
+        hypr:.config/hypr/current-wallpaper | \
         gtk:.config/gtk-4.0/assets | \
         gtk:.config/gtk-4.0/gtk.css | \
         gtk:.config/gtk-4.0/gtk-dark.css)
@@ -91,20 +99,16 @@ detect_and_backup_conflicts() {
 }
 
 for module in "${modules[@]}"; do
-    if [[ -d "$DOTFILES_DIR/$module" ]]; then
-        detect_and_backup_conflicts "$module"
+    detect_and_backup_conflicts "$module"
 
-        stow \
-            --dir="$DOTFILES_DIR" \
-            --target="$HOME" \
-            --no-folding \
-            --restow \
-            "$module"
+    stow \
+        --dir="$DOTFILES_DIR" \
+        --target="$HOME" \
+        --no-folding \
+        --restow \
+        "$module"
 
-        success "Applied $module"
-    else
-        warning "Module not found: $module"
-    fi
+    success "Applied $module"
 done
 
 print_backups

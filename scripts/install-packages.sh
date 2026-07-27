@@ -18,8 +18,8 @@ read_package_file() {
 
 install_official_packages() {
     if [[ ! -f "$PACMAN_FILE" ]]; then
-        warning "Package list not found: $PACMAN_FILE"
-        return
+        error "Package list not found: $PACMAN_FILE"
+        return 1
     fi
 
     mapfile -t packages < <(read_package_file "$PACMAN_FILE")
@@ -37,8 +37,8 @@ install_official_packages() {
 
 install_aur_packages() {
     if [[ ! -f "$AUR_FILE" ]]; then
-        warning "AUR package list not found: $AUR_FILE"
-        return
+        error "AUR package list not found: $AUR_FILE"
+        return 1
     fi
 
     if ! command_exists paru; then

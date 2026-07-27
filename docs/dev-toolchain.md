@@ -40,9 +40,11 @@ Defaults:
 - Empty `MAVEN_VERSION` runs `sdk install maven`, SDKMAN's latest stable default.
 - `NODE_VERSION=lts` runs `volta install node`, Volta's latest LTS default.
 
-Fish loads SDKMAN from `fish/.config/fish/conf.d/sdk.fish` and Volta from
-`fish/.config/fish/conf.d/environment.fish`. A new Fish session should resolve:
+Zsh loads SDKMAN and Volta from
+`zsh/.config/zsh/environment.zsh`. SDKMAN remains responsible for the Java,
+Maven and Gradle paths; Volta remains responsible for Node, npm and pnpm. A new
+Zsh login session should resolve:
 
 ```bash
-fish -lc 'command -v sdk; command -v java; command -v javac; command -v mvn; command -v volta; command -v node; command -v npm; command -v pnpm'
+zsh -lic 'command -v sdk; command -v java; command -v javac; command -v mvn; command -v gradle; command -v volta; command -v node; command -v npm; command -v pnpm'
 ```

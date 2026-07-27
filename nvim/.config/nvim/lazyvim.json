@@ -3,7 +3,6 @@
     "lazyvim.plugins.extras.formatting.prettier",
     "lazyvim.plugins.extras.lang.angular",
     "lazyvim.plugins.extras.lang.java",
-    "lazyvim.plugins.extras.lang.typescript",
     "lazyvim.plugins.extras.linting.eslint"
   ],
   "install_version": 8,

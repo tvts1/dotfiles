@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
 BACKUP_TIMESTAMP="${BACKUP_TIMESTAMP:-$(date +%Y%m%d-%H%M%S)}"
 BACKUP_ROOT="${BACKUP_ROOT:-$HOME/.dotfiles-backup/$BACKUP_TIMESTAMP}"
 BACKED_UP_PATHS=()

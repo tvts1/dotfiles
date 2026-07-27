@@ -26,5 +26,6 @@ systemctl --user status elephant.service --no-pager
 
 Hyprland asks the systemd user manager to start `elephant.service`, then starts
 Walker once using `walker --gapplication-service`. Elephant still runs under
-systemd supervision; the explicit start is needed because a direct Hyprland
-session does not activate `graphical-session.target`.
+systemd supervision. `systemctl start` waits for the unit transition before the
+Walker process is launched, avoiding a second direct Elephant process and the
+startup race seen in sessions that do not activate `graphical-session.target`.

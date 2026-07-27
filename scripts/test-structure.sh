@@ -39,6 +39,14 @@ require_aur_package() {
     package_list_contains "$AUR_FILE" "$package" || fail "missing AUR package: $package"
 }
 
+reject_pacman_package() {
+    local package="$1"
+
+    if package_list_contains "$PACMAN_FILE" "$package"; then
+        fail "redundant or retired pacman package remains: $package"
+    fi
+}
+
 assert_file_executable() {
     local path="$1"
 
@@ -131,7 +139,6 @@ for ok, message in checks:
 expected_other_actions = {
     "Open Terminal Here": ("1783989048238571-1", "kitty --directory %f"),
     "Open in Neovim": ("1783993487828022-1", "kitty --directory %f nvim ."),
-    "Search Here": ("1783993569751182-2", "catfish --path=%f"),
 }
 
 by_name = {text(item, "name"): item for item in actions}
@@ -196,9 +203,23 @@ assert_elephant_autostart() {
         fail "Walker gapplication service must be started exactly once"
 }
 
+configured_stow_modules() {
+    awk '
+        /^modules=\($/ { in_modules = 1; next }
+        in_modules && /^\)$/ { exit }
+        in_modules {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+            if ($0 != "") print
+        }
+    ' scripts/apply-stow.sh
+}
+
 cd "$DOTFILES_DIR"
 
 hardcoded_home='/home/''tassio'
+retired_shell='fi''sh'
+retired_search='catfi''sh'
+obsolete_nvim='neo''conf|neo''dev'
 
 assert_no_match "$hardcoded_home" "hard-coded user home remains"
 ok "no hard-coded user home paths"
@@ -207,11 +228,24 @@ assert_no_match '/home/[[:alnum:]_-]+' "hard-coded user home path remains"
 ok "no hard-coded home paths for any user"
 
 forbidden_eval='eval[[:space:]]'
-assert_no_match "$forbidden_eval" "forbidden shell evaluation remains"
-ok "no forbidden shell evaluation"
+if rg -n --hidden -S "$forbidden_eval" \
+    --glob '!.git/**' \
+    --glob '!zsh/.config/zsh/integrations.zsh' .; then
+    fail "shell evaluation outside the reviewed Zsh integrations remains"
+fi
+[[ "$(rg -c "$forbidden_eval" zsh/.config/zsh/integrations.zsh)" == "2" ]] ||
+    fail "Zsh integrations must initialize only zoxide and Starship with eval"
+ok "shell evaluation is limited to reviewed zoxide and Starship initialization"
 
 assert_no_match 'pacman\s+-Sy(\s|$)' "unsafe pacman sync-only command remains"
 ok "no unsafe pacman sync-only usage"
+
+assert_no_match "$retired_shell|${retired_shell}er|sdkman-for-$retired_shell|/usr/bin/$retired_shell" \
+    "retired shell references remain"
+[[ ! -e "$retired_shell" ]] || fail "retired shell module still exists"
+assert_no_match "$retired_search" "removed Thunar search command remains"
+assert_no_match "$obsolete_nvim" "obsolete Neovim configuration remains"
+ok "retired shell, Thunar search, and obsolete Neovim references are absent"
 
 if find . -xtype l -not -path './.git/*' -print | grep -q .; then
     find . -xtype l -not -path './.git/*' -print >&2
@@ -236,11 +270,24 @@ ok "Hyprpaper config is stable and contains no fixed wallpaper"
 
 assert_file_executable hypr/.config/hypr/scripts/set-wallpaper.sh
 assert_file_executable hypr/.config/hypr/scripts/restore-wallpaper.sh
-assert_file_executable fish/.local/bin/sdk
 bash -n hypr/.config/hypr/scripts/set-wallpaper.sh
 bash -n hypr/.config/hypr/scripts/restore-wallpaper.sh
-bash -n fish/.local/bin/sdk
-ok "wallpaper scripts and SDKMAN shim exist, are executable, and have valid Bash syntax"
+ok "wallpaper scripts are executable and have valid Bash syntax"
+
+for zsh_file in \
+    zsh/.zshrc \
+    zsh/.zprofile \
+    zsh/.config/zsh/aliases.zsh \
+    zsh/.config/zsh/environment.zsh \
+    zsh/.config/zsh/functions.zsh \
+    zsh/.config/zsh/integrations.zsh \
+    zsh/.config/zsh/plugins.zsh; do
+    [[ -f "$zsh_file" ]] || fail "missing Zsh configuration: $zsh_file"
+    if command -v zsh >/dev/null 2>&1; then
+        zsh -n "$zsh_file"
+    fi
+done
+ok "modular Zsh configuration is present and parses when Zsh is available"
 
 assert_simple_xml thunar/.config/Thunar/uca.xml
 assert_thunar_wallpaper_actions thunar/.config/Thunar/uca.xml
@@ -249,6 +296,14 @@ ok "Thunar wallpaper action is present, portable, and unique"
 assert_walker_config walker/.config/walker/config.toml
 assert_elephant_autostart hypr/.config/hypr/config/autostart.lua
 ok "Walker config and Elephant startup are stable"
+
+[[ "$(grep -c 'restore-wallpaper\.sh' hypr/.config/hypr/config/autostart.lua)" == "1" ]] ||
+    fail "Hyprland must call the wallpaper restore script exactly once"
+if grep -Eq 'hyprpaper[[:space:]]+-c|set-wallpaper\.sh|while .+hyprpaper' \
+    hypr/.config/hypr/config/autostart.lua; then
+    fail "Hyprland autostart duplicates wallpaper startup or IPC logic"
+fi
+ok "wallpaper startup is centralized in the repository scripts"
 
 for script in \
     scripts/configure-elephant.sh \
@@ -286,14 +341,19 @@ require_pacman_package neovim
 require_pacman_package bat
 require_pacman_package zoxide
 require_pacman_package starship
+require_pacman_package zsh
+require_pacman_package zsh-autosuggestions
+require_pacman_package zsh-syntax-highlighting
+require_pacman_package fzf
+require_pacman_package eza
+require_pacman_package ripgrep
+require_pacman_package fd
 require_pacman_package tar
-require_pacman_package gzip
 require_pacman_package bzip2
 require_pacman_package unzip
 require_pacman_package unrar
 require_pacman_package 7zip
 require_pacman_package stow
-require_pacman_package systemd
 require_pacman_package xdg-user-dirs
 require_aur_package walker-bin
 require_aur_package elephant
@@ -303,6 +363,24 @@ require_aur_package elephant-runner
 require_aur_package bibata-cursor-theme
 require_aur_package colloid-gtk-theme-git
 ok "configured commands have declared packages"
+
+for package in git base-devel gcc make gzip systemd grim slurp "$retired_shell"; do
+    reject_pacman_package "$package"
+done
+grep -Eq 'pacman[[:space:]].*git[[:space:]]+base-devel' install.sh ||
+    fail "installer bootstrap must provide git and base-devel"
+ok "bootstrap-only and transitive packages are absent from the main package list"
+
+mapfile -t stow_modules < <(configured_stow_modules)
+((${#stow_modules[@]} > 0)) || fail "no Stow modules configured"
+zsh_module_found=0
+for module in "${stow_modules[@]}"; do
+    [[ -d "$module" ]] || fail "configured Stow module does not exist: $module"
+    [[ "$module" != "$retired_shell" ]] || fail "retired shell remains in Stow modules"
+    [[ "$module" == "zsh" ]] && zsh_module_found=1
+done
+((zsh_module_found)) || fail "Zsh is missing from Stow modules"
+ok "every configured Stow module exists and Zsh is enabled"
 
 tmp_home="$(mktemp -d)"
 trap 'rm -rf -- "$tmp_home"' EXIT
@@ -323,28 +401,44 @@ if rg -n --hidden -S "$hardcoded_home|eDP-1" "$tmp_home/.config/hypr"; then
 fi
 ok "prepare-user-files works against a temporary HOME"
 
+if command -v zsh >/dev/null 2>&1; then
+    zsh_output="$(
+        HOME="$tmp_home" XDG_CONFIG_HOME="$tmp_home/.config" \
+            zsh -f -c "source '$DOTFILES_DIR/zsh/.config/zsh/environment.zsh'; source '$DOTFILES_DIR/zsh/.config/zsh/environment.zsh'"
+    )"
+    [[ -z "$zsh_output" ]] || fail "Zsh environment printed output in a non-interactive shell"
+    ok "Zsh environment is idempotent and quiet in a non-interactive shell"
+fi
+
 if command -v stow >/dev/null 2>&1; then
-    for module in desktop fish gtk hypr kitty nvim starship thunar walker waybar; do
-        stow_args=(
-            --dir="$DOTFILES_DIR"
-            --target="$tmp_home"
-            --no-folding
-            --simulate
-        )
+    stow_home="$tmp_home/stow-home"
+    stow_backup="$tmp_home/stow-backup"
+    mkdir -p -- "$stow_home/.config/kitty"
+    printf 'local zsh configuration\n' > "$stow_home/.zshrc"
+    printf 'local kitty configuration\n' > "$stow_home/.config/kitty/kitty.conf"
 
-        if [[ "$module" == "hypr" ]]; then
-            stow_args+=(--ignore='current-wallpaper')
-        fi
-
-        stow "${stow_args[@]}" "$module" >/dev/null
+    for stow_run in 1 2; do
+        HOME="$stow_home" \
+            DOTFILES_DIR="$DOTFILES_DIR" \
+            BACKUP_ROOT="$stow_backup" \
+            bash "$DOTFILES_DIR/scripts/apply-stow.sh" >/dev/null ||
+            fail "Stow application run $stow_run failed in the temporary HOME"
     done
 
-    stow --dir="$DOTFILES_DIR" --target="$tmp_home" --no-folding --restow --simulate thunar >/dev/null
-    stow --dir="$DOTFILES_DIR" --target="$tmp_home" --no-folding --restow --simulate thunar >/dev/null
+    [[ "$(readlink -f -- "$stow_home/.zshrc")" == "$(readlink -f -- "$DOTFILES_DIR/zsh/.zshrc")" ]] ||
+        fail "Stow did not link the Zsh configuration"
+    [[ "$(readlink -f -- "$stow_home/.config/kitty/kitty.conf")" == "$(readlink -f -- "$DOTFILES_DIR/kitty/.config/kitty/kitty.conf")" ]] ||
+        fail "Stow did not link the Kitty configuration"
+    [[ "$(cat "$stow_backup/.zshrc")" == "local zsh configuration" ]] ||
+        fail "Stow did not preserve the existing Zsh configuration"
+    [[ "$(cat "$stow_backup/.config/kitty/kitty.conf")" == "local kitty configuration" ]] ||
+        fail "Stow did not preserve the existing Kitty configuration"
+    [[ "$(find "$stow_backup" -type f | wc -l)" == "2" ]] ||
+        fail "Stow backups were duplicated during the second run"
 
-    ok "Stow simulation succeeds against a temporary HOME"
+    ok "Stow backs up conflicts, links every module, and reruns safely in a temporary HOME"
 else
-    ok "Stow simulation skipped because stow is not installed"
+    ok "Stow application test skipped because stow is not installed"
 fi
 
 HOME="$tmp_home" \
@@ -394,6 +488,19 @@ grep -Fq 'hyprctl hyprpaper wallpaper' "$mock_log" || fail "set-wallpaper did no
     fail "set-wallpaper did not create the current wallpaper symlink"
 [[ "$(readlink -- "$tmp_home/.config/hypr/current-wallpaper")" == "$tmp_home/Pictures/Wallpapers/mocked wallpaper (test).png" ]] ||
     fail "current wallpaper symlink points to the wrong image"
-ok "set-wallpaper works with mocked Hyprpaper IPC"
+
+hyprpaper_start_count="$(grep -c '^hyprpaper ' "$mock_log")"
+HOME="$tmp_home" \
+    XDG_STATE_HOME="$tmp_home/.local/state" \
+    PATH="$mock_bin:$PATH" \
+    MOCK_LOG="$mock_log" \
+    MOCK_READY="$mock_ready" \
+    bash "$DOTFILES_DIR/hypr/.config/hypr/scripts/restore-wallpaper.sh" >/dev/null ||
+    fail "restore-wallpaper mocked run failed"
+[[ "$(grep -c '^hyprpaper ' "$mock_log")" == "$hyprpaper_start_count" ]] ||
+    fail "restore-wallpaper started a duplicate Hyprpaper process"
+[[ "$(grep -c 'hyprctl hyprpaper wallpaper' "$mock_log")" == "2" ]] ||
+    fail "restore-wallpaper did not reapply the saved wallpaper"
+ok "wallpaper scripts handle spaced paths and restore idempotently with mocked IPC"
 
 ok "safe structure test completed"
