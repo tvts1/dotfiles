@@ -1,6 +1,4 @@
-# Base
-base-devel
-git
+# Dotfiles
 stow
 
 # Hyprland
@@ -18,7 +16,9 @@ libnotify
 
 # Terminal and shell
 kitty
-fish
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
 starship
 zoxide
 firefox
@@ -37,14 +37,11 @@ zip
 tar
 unrar
 7zip
-gzip
 
-# Clipboard and screenshots
+# Clipboard and screenshots (hyprshot pulls grim and slurp)
 wl-clipboard
 cliphist
 hyprshot
-grim
-slurp
 
 # Audio
 pipewire
@@ -100,7 +97,4 @@ upower
 neovim
 lazygit
 tree-sitter-cli
-gcc
-make
 bzip2
-systemd
