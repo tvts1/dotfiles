@@ -5,9 +5,7 @@ hl.on("hyprland.start", function()
 
     hl.exec_cmd("waybar")
     hl.exec_cmd("swaync")
-    hl.exec_cmd(
-        "sh -c 'hyprpaper -c \"$HOME/.config/hypr/hyprpaper.conf\" >/dev/null 2>&1 & attempts=50; while [ \"$attempts\" -gt 0 ]; do hyprctl hyprpaper listactive >/dev/null 2>&1 && break; attempts=$((attempts - 1)); sleep 0.1; done; \"$HOME/.config/hypr/scripts/restore-wallpaper.sh\"'"
-    )
+    hl.exec_cmd("$HOME/.config/hypr/scripts/restore-wallpaper.sh")
     hl.exec_cmd("hypridle")
 
     hl.exec_cmd("systemctl --user start elephant.service")

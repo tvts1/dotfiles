@@ -113,7 +113,8 @@ main() {
 
     require_runtime_commands
     start_hyprpaper_if_needed
-    wait_for_hyprpaper_ipc || die "Hyprpaper IPC did not become available"
+    wait_for_hyprpaper_ipc ||
+        die "Hyprpaper IPC did not become available within 5 seconds"
     apply_wallpaper "$wallpaper_path"
     save_current_wallpaper "$wallpaper_path"
 
