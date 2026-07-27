@@ -17,6 +17,16 @@ zsh/
 `.zprofile` carrega apenas o ambiente de login. `.zshrc` configura histórico,
 completion, aliases, funções e integrações interativas.
 
+Durante a instalação, `scripts/configure-default-shell.sh` valida o executável
+do Zsh e sua entrada em `/etc/shells` antes de defini-lo como shell de login. A
+operação é idempotente e não chama `chsh` quando a conta já usa Zsh.
+
+Verificação sem alteração:
+
+```bash
+bash scripts/configure-default-shell.sh --check
+```
+
 ## Integrações condicionais
 
 - SDKMAN só é carregado quando `~/.sdkman/bin/sdkman-init.sh` existe.
