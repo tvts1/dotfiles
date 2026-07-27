@@ -190,6 +190,8 @@ assert_elephant_autostart() {
         fail "Hyprland autostart still starts Elephant directly"
     fi
 
+    [[ "$(grep -c 'systemctl --user start elephant\.service' "$file")" == "1" ]] ||
+        fail "Hyprland must ask systemd to start Elephant exactly once"
     [[ "$(grep -c 'walker --gapplication-service' "$file")" == "1" ]] ||
         fail "Walker gapplication service must be started exactly once"
 }
