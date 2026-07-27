@@ -1,53 +1,74 @@
 # Dotfiles
 
-Arch Linux dotfiles managed with GNU Stow.
+Configuração pessoal e portátil para Arch Linux com Hyprland, gerenciada por
+GNU Stow. O instalador prepara o desktop, cria backups de conflitos e pode ser
+executado novamente sem substituir arquivos pessoais silenciosamente.
 
-## Install
+## Ambiente suportado
 
-Run the normal installer as a regular user:
+- Arch Linux e Hyprland
+- Zsh, Kitty e Starship
+- Neovim com LazyVim
+- Waybar, Walker e Elephant
+- Thunar
+- zoxide, FZF, SDKMAN e Volta
+
+O Kitty não define um shell próprio: ele usa o shell padrão da conta. O
+instalador configura o Zsh, mas não altera o shell de login do usuário.
+
+## Pré-requisitos
+
+Execute como usuário normal em uma instalação Arch com acesso à rede e `sudo`
+configurado. `git` é necessário para clonar o repositório; o bootstrap garante
+`git` e `base-devel` antes de instalar o restante.
+
+## Instalação
 
 ```bash
+git clone https://github.com/tvts1/dotfiles.git
+cd dotfiles
 ./install.sh
 ```
 
-The default install stays lightweight. It installs desktop packages, applies
-Stow modules, enables required services, configures Elephant for Walker, and
-disables Thunar's native wallpaper plugin so only the custom Hyprpaper action is
-shown.
-
-To also install the optional Java and Node development toolchain:
+Para incluir a toolchain opcional de Java e Node:
 
 ```bash
 ./install.sh --with-dev-tools
 ```
 
-The optional toolchain can also be installed later:
+O instalador não remove arquivos pessoais, não muda o shell de login e registra
+conflitos em `~/.dotfiles-backup/<timestamp>/`.
 
-```bash
-bash scripts/install-dev-toolchain.sh
+## Módulos
+
+Os módulos aplicados pelo Stow são:
+
+```text
+desktop  gtk  hypr  kitty  nvim  starship  thunar  walker  waybar  zsh
 ```
 
-## Walker And Elephant
+Arquivos dependentes da máquina, como o wallpaper atual, o Hyprlock renderizado
+e links do tema GTK 4, são gerados localmente e não são versionados.
 
-Walker is the frontend. Elephant is the backend service that provides searchable
-data. Desktop application results require the `desktopapplications` Elephant
-provider, installed by the AUR package `elephant-desktopapplications`.
+## Validação
 
-This repository installs:
-
-- `walker-bin`
-- `elephant`
-- `elephant-desktopapplications`
-- `elephant-providerlist`
-- `elephant-runner`
-
-Elephant is managed as a systemd user service through:
+Os testes estruturais usam uma `HOME` temporária para simular o Stow e o
+wallpaper:
 
 ```bash
-bash scripts/configure-elephant.sh
+./scripts/test-structure.sh
+git diff --check
+bash -n install.sh
+find scripts -type f -name "*.sh" -exec bash -n {} \;
 ```
 
-Check the current state with:
+Quando `luac` estiver instalado:
+
+```bash
+find hypr nvim -type f -name "*.lua" -exec luac -p {} \;
+```
+
+Para verificar somente a integração Walker/Elephant:
 
 ```bash
 bash scripts/configure-elephant.sh --check
@@ -55,68 +76,22 @@ elephant listproviders
 systemctl --user status elephant.service --no-pager
 ```
 
-Hyprland asks the systemd user manager to start `elephant.service`, then starts
-Walker once with `walker --gapplication-service`. This keeps Elephant under
-systemd supervision even when the Hyprland session does not activate
-`graphical-session.target`.
+## Rollback
 
-## Thunar Wallpaper Plugin
-
-The custom Thunar action calls:
+Antes de restaurar algo, revise os backups:
 
 ```bash
-$HOME/.config/hypr/scripts/set-wallpaper.sh
+find ~/.dotfiles-backup -maxdepth 3 -type f -o -type l
 ```
 
-The native Thunar plugin at
-`/usr/lib/thunarx-3/thunar-wallpaper-plugin.so` is disabled by:
+Remova apenas os links do módulo desejado com `stow --delete`, usando este
+repositório como `--dir` e a sua `HOME` como `--target`. Depois, mova o arquivo
+correspondente do backup para o caminho original. Não copie um diretório de
+backup inteiro sem revisar o conteúdo.
 
-```bash
-bash scripts/disable-thunar-wallpaper-plugin.sh
-```
+## Documentação
 
-The script adds a managed pacman `NoExtract` entry for
-`usr/lib/thunarx-3/thunar-wallpaper-plugin.so` and moves the existing plugin to:
-
-```bash
-/var/lib/dotfiles/thunar-wallpaper-plugin/thunar-wallpaper-plugin.so
-```
-
-That keeps the plugin disabled after Thunar package updates.
-
-Restore it with:
-
-```bash
-bash scripts/restore-thunar-wallpaper-plugin.sh
-```
-
-## Development Toolchain
-
-The optional toolchain script installs:
-
-- SDKMAN in `$HOME/.sdkman`
-- Java through SDKMAN
-- Maven through SDKMAN
-- Volta in `$HOME/.volta`
-- Node through Volta
-- npm bundled with Node
-- pnpm through Volta native pnpm support
-
-Defaults:
-
-- `JAVA_VERSION` empty: `sdk install java`
-- `MAVEN_VERSION` empty: `sdk install maven`
-- `NODE_VERSION=lts`: `volta install node`
-
-Examples:
-
-```bash
-bash scripts/install-dev-toolchain.sh --check
-bash scripts/install-dev-toolchain.sh --dry-run
-bash scripts/install-dev-toolchain.sh --java 21.0.4-tem --maven 3.9.9 --node 22
-bash scripts/install-dev-toolchain.sh --skip-java
-bash scripts/install-dev-toolchain.sh --skip-node
-```
-
-Fish integration is provided by the Stow-managed Fish config. A new Fish session
-loads SDKMAN and Volta without relying on `.bashrc` or `.zshrc`.
+- [Zsh e integrações](docs/zsh.md)
+- [Toolchain de desenvolvimento](docs/dev-toolchain.md)
+- [Walker e Elephant](docs/walker-elephant.md)
+- [Integração de wallpaper do Thunar](docs/thunar-wallpaper-plugin.md)
