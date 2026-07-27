@@ -1,6 +1,9 @@
 # Application launcher
 walker-bin
 elephant
+elephant-desktopapplications
+elephant-providerlist
+elephant-runner
 
 # Cursor
 bibata-cursor-theme

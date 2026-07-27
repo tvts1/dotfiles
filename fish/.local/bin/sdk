@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
+
+if [[ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
+    printf 'SDKMAN is not installed at %s\n' "$SDKMAN_DIR" >&2
+    exit 127
+fi
+
+set +u
+source "$SDKMAN_DIR/bin/sdkman-init.sh"
+set -u
+
+sdk "$@"

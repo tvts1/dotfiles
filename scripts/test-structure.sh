@@ -146,6 +146,54 @@ for name, (unique_id, expected_command) in expected_other_actions.items():
 PY
 }
 
+assert_walker_config() {
+    local file="$1"
+
+    python - "$file" <<'PY'
+import sys
+import tomllib
+
+path = sys.argv[1]
+with open(path, "rb") as handle:
+    config = tomllib.load(handle)
+
+providers = config.get("providers", {})
+default = providers.get("default", [])
+empty = providers.get("empty", [])
+prefixes = providers.get("prefixes", [])
+actions = providers.get("actions", {})
+
+allowed = {"desktopapplications", "providerlist", "runner"}
+referenced = set(default) | set(empty)
+referenced.update(item.get("provider", "") for item in prefixes)
+referenced.update(key for key in actions if key not in {"fallback", "dmenu"})
+referenced.discard("")
+
+checks = [
+    ("desktopapplications" in default, "Walker default providers must include desktopapplications"),
+    ("desktopapplications" in empty, "Walker empty providers must include desktopapplications"),
+    (referenced <= allowed, f"Walker references unavailable providers: {sorted(referenced - allowed)}"),
+    ("providerlist" in referenced, "Walker must expose providerlist through a prefix"),
+    ("runner" in referenced, "Walker must expose runner through a prefix"),
+]
+
+for ok, message in checks:
+    if not ok:
+        raise SystemExit(message)
+PY
+}
+
+assert_elephant_autostart() {
+    local file="$1"
+
+    if grep -n 'hl\.exec_cmd("elephant' "$file"; then
+        fail "Hyprland autostart still starts Elephant directly"
+    fi
+
+    [[ "$(grep -c 'walker --gapplication-service' "$file")" == "1" ]] ||
+        fail "Walker gapplication service must be started exactly once"
+}
+
 cd "$DOTFILES_DIR"
 
 hardcoded_home='/home/''tassio'
@@ -186,13 +234,31 @@ ok "Hyprpaper config is stable and contains no fixed wallpaper"
 
 assert_file_executable hypr/.config/hypr/scripts/set-wallpaper.sh
 assert_file_executable hypr/.config/hypr/scripts/restore-wallpaper.sh
+assert_file_executable fish/.local/bin/sdk
 bash -n hypr/.config/hypr/scripts/set-wallpaper.sh
 bash -n hypr/.config/hypr/scripts/restore-wallpaper.sh
-ok "wallpaper scripts exist, are executable, and have valid Bash syntax"
+bash -n fish/.local/bin/sdk
+ok "wallpaper scripts and SDKMAN shim exist, are executable, and have valid Bash syntax"
 
 assert_simple_xml thunar/.config/Thunar/uca.xml
 assert_thunar_wallpaper_actions thunar/.config/Thunar/uca.xml
 ok "Thunar wallpaper action is present, portable, and unique"
+
+assert_walker_config walker/.config/walker/config.toml
+assert_elephant_autostart hypr/.config/hypr/config/autostart.lua
+ok "Walker config and Elephant startup are stable"
+
+for script in \
+    scripts/configure-elephant.sh \
+    scripts/disable-thunar-wallpaper-plugin.sh \
+    scripts/restore-thunar-wallpaper-plugin.sh \
+    scripts/install-dev-toolchain.sh; do
+    assert_file_executable "$script"
+    bash -n "$script"
+done
+grep -Fq 'NoExtract = usr/lib/thunarx-3/thunar-wallpaper-plugin.so' docs/thunar-wallpaper-plugin.md ||
+    fail "Thunar plugin NoExtract restoration documentation is missing"
+ok "new administrative scripts exist, are executable, and are documented"
 
 require_pacman_package firefox
 require_pacman_package kitty
@@ -229,6 +295,9 @@ require_pacman_package systemd
 require_pacman_package xdg-user-dirs
 require_aur_package walker-bin
 require_aur_package elephant
+require_aur_package elephant-desktopapplications
+require_aur_package elephant-providerlist
+require_aur_package elephant-runner
 require_aur_package bibata-cursor-theme
 require_aur_package colloid-gtk-theme-git
 ok "configured commands have declared packages"
