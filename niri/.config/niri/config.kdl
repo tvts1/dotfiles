@@ -1,0 +1,15 @@
+// Niri configuration split by responsibility. Includes are resolved relative
+// to this file and are supported by Niri's KDL loader.
+include "input.kdl"
+include "layout.kdl"
+include "rules.kdl"
+include "binds.kdl"
+
+spawn-at-startup "noctalia"
+spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+hotkey-overlay {
+    skip-at-startup
+}

@@ -27,23 +27,20 @@ package_list_contains() {
         grep -Fxq -- "$package"
 }
 
-require_pacman_package() {
-    local package="$1"
+require_package() {
+    local file="$1"
+    local package="$2"
 
-    package_list_contains "$PACMAN_FILE" "$package" || fail "missing pacman package: $package"
+    package_list_contains "$file" "$package" ||
+        fail "missing package in $(basename "$file"): $package"
 }
 
-require_aur_package() {
-    local package="$1"
+reject_package() {
+    local file="$1"
+    local package="$2"
 
-    package_list_contains "$AUR_FILE" "$package" || fail "missing AUR package: $package"
-}
-
-reject_pacman_package() {
-    local package="$1"
-
-    if package_list_contains "$PACMAN_FILE" "$package"; then
-        fail "redundant or retired pacman package remains: $package"
+    if package_list_contains "$file" "$package"; then
+        fail "retired or redundant package remains in $(basename "$file"): $package"
     fi
 }
 
@@ -52,155 +49,6 @@ assert_file_executable() {
 
     [[ -f "$path" ]] || fail "missing file: $path"
     [[ -x "$path" ]] || fail "file is not executable: $path"
-}
-
-assert_no_match() {
-    local pattern="$1"
-    local message="$2"
-
-    if rg -n --hidden -S "$pattern" --glob '!.git/**' .; then
-        fail "$message"
-    fi
-}
-
-assert_simple_xml() {
-    local file="$1"
-    local open_actions close_actions raw_ampersand
-
-    [[ -f "$file" ]] || fail "missing XML file: $file"
-
-    open_actions="$(grep -c '<actions>' "$file")"
-    close_actions="$(grep -c '</actions>' "$file")"
-    [[ "$open_actions" == "1" && "$close_actions" == "1" ]] ||
-        fail "invalid Thunar XML root"
-
-    if grep -n '&' "$file" | grep -Ev '&(amp|lt|gt|apos|quot);' >/dev/null; then
-        grep -n '&' "$file" | grep -Ev '&(amp|lt|gt|apos|quot);' >&2
-        fail "Thunar XML contains an unescaped ampersand"
-    fi
-
-    raw_ampersand="$(grep -n '<[^!?/][^>]*[^/]>' "$file" | wc -l)"
-    [[ "$raw_ampersand" -gt 0 ]] || fail "Thunar XML has no elements"
-}
-
-assert_thunar_wallpaper_actions() {
-    local file="$1"
-
-    python - "$file" <<'PY'
-import sys
-import xml.etree.ElementTree as ET
-
-path = sys.argv[1]
-tree = ET.parse(path)
-root = tree.getroot()
-actions = root.findall("action")
-
-def text(action, name):
-    value = action.findtext(name)
-    return "" if value is None else value
-
-def has_child(action, name):
-    return action.find(name) is not None
-
-def normalized(value):
-    return " ".join(value.casefold().split())
-
-wallpaper_names = {"set as wallpaper", "definir como wallpaper"}
-wallpaper_actions = [
-    action for action in actions
-    if normalized(text(action, "name")) in wallpaper_names
-    or "set-wallpaper.sh" in text(action, "command")
-]
-
-if len(wallpaper_actions) != 1:
-    raise SystemExit(f"expected exactly one Thunar wallpaper action, found {len(wallpaper_actions)}")
-
-action = wallpaper_actions[0]
-command = text(action, "command")
-expected_command = 'sh -c \'"$HOME/.config/hypr/scripts/set-wallpaper.sh" "$1"\' _ %f'
-
-checks = [
-    (text(action, "name") == "Set as wallpaper", "wallpaper action must be named exactly 'Set as wallpaper'"),
-    ("Definir como wallpaper" not in [text(item, "name") for item in actions], "Portuguese duplicate wallpaper action remains"),
-    (sum("set-wallpaper.sh" in text(item, "command") for item in actions) == 1, "multiple Thunar actions call set-wallpaper.sh"),
-    (command == expected_command, "wallpaper action command is not the portable sh -c form"),
-    ("$HOME/.config/hypr/scripts/set-wallpaper.sh" in command, "wallpaper action does not call the Hyprpaper script through HOME"),
-    (("/home/" + "tassio") not in command, "wallpaper action command contains a hard-coded home"),
-    (text(action, "range") == "1-1", "wallpaper action must accept exactly one file"),
-    (has_child(action, "image-files"), "wallpaper action must be limited to image files"),
-    (not has_child(action, "directories"), "wallpaper action must not appear for directories"),
-    (text(action, "patterns") != "*", "wallpaper action patterns must not match every file"),
-]
-
-for ok, message in checks:
-    if not ok:
-        raise SystemExit(message)
-
-expected_other_actions = {
-    "Open Terminal Here": ("1783989048238571-1", "kitty --directory %f"),
-    "Open in Neovim": ("1783993487828022-1", "kitty --directory %f nvim ."),
-}
-
-by_name = {text(item, "name"): item for item in actions}
-for name, (unique_id, expected_command) in expected_other_actions.items():
-    item = by_name.get(name)
-    if item is None:
-        raise SystemExit(f"missing preserved Thunar action: {name}")
-    if text(item, "unique-id") != unique_id:
-        raise SystemExit(f"changed unique-id for preserved Thunar action: {name}")
-    if text(item, "command") != expected_command:
-        raise SystemExit(f"changed command for preserved Thunar action: {name}")
-PY
-}
-
-assert_walker_config() {
-    local file="$1"
-
-    python - "$file" <<'PY'
-import sys
-import tomllib
-
-path = sys.argv[1]
-with open(path, "rb") as handle:
-    config = tomllib.load(handle)
-
-providers = config.get("providers", {})
-default = providers.get("default", [])
-empty = providers.get("empty", [])
-prefixes = providers.get("prefixes", [])
-actions = providers.get("actions", {})
-
-allowed = {"desktopapplications", "providerlist", "runner"}
-referenced = set(default) | set(empty)
-referenced.update(item.get("provider", "") for item in prefixes)
-referenced.update(key for key in actions if key not in {"fallback", "dmenu"})
-referenced.discard("")
-
-checks = [
-    ("desktopapplications" in default, "Walker default providers must include desktopapplications"),
-    ("desktopapplications" in empty, "Walker empty providers must include desktopapplications"),
-    (referenced <= allowed, f"Walker references unavailable providers: {sorted(referenced - allowed)}"),
-    ("providerlist" in referenced, "Walker must expose providerlist through a prefix"),
-    ("runner" in referenced, "Walker must expose runner through a prefix"),
-]
-
-for ok, message in checks:
-    if not ok:
-        raise SystemExit(message)
-PY
-}
-
-assert_elephant_autostart() {
-    local file="$1"
-
-    if grep -n 'hl\.exec_cmd("elephant' "$file"; then
-        fail "Hyprland autostart still starts Elephant directly"
-    fi
-
-    [[ "$(grep -c 'systemctl --user start elephant\.service' "$file")" == "1" ]] ||
-        fail "Hyprland must ask systemd to start Elephant exactly once"
-    [[ "$(grep -c 'walker --gapplication-service' "$file")" == "1" ]] ||
-        fail "Walker gapplication service must be started exactly once"
 }
 
 configured_stow_modules() {
@@ -216,208 +64,299 @@ configured_stow_modules() {
 
 cd "$DOTFILES_DIR"
 
-hardcoded_home='/home/''tassio'
-retired_shell='fi''sh'
-retired_search='catfi''sh'
-obsolete_nvim='neo''conf|neo''dev'
+old_stack=(
+    'hypr''land'
+    'hypr''paper'
+    'hypr''lock'
+    'hypr''idle'
+    'hypr''shot'
+    'way''bar'
+    'walk''er'
+    'ele''phant'
+    'sway''nc'
+    'xdg-desktop-portal-''hypr''land'
+    'quick''shell'
+    'noctalia-''q''s'
+)
 
-assert_no_match "$hardcoded_home" "hard-coded user home remains"
-ok "no hard-coded user home paths"
-
-assert_no_match '/home/[[:alnum:]_-]+' "hard-coded user home path remains"
-ok "no hard-coded home paths for any user"
-
-forbidden_eval='eval[[:space:]]'
-if rg -n --hidden -S "$forbidden_eval" \
-    --glob '!.git/**' \
-    --glob '!zsh/.config/zsh/integrations.zsh' .; then
-    fail "shell evaluation outside the reviewed Zsh integrations remains"
+old_pattern="$(IFS='|'; printf '%s' "${old_stack[*]}")"
+if rg -n -i --hidden --glob '!.git/**' "$old_pattern" .; then
+    fail "retired desktop references remain"
 fi
-[[ "$(rg -c "$forbidden_eval" zsh/.config/zsh/integrations.zsh)" == "2" ]] ||
-    fail "Zsh integrations must initialize only zoxide and Starship with eval"
-ok "shell evaluation is limited to reviewed zoxide and Starship initialization"
+ok "retired desktop references are absent"
 
-assert_no_match 'pacman\s+-Sy(\s|$)' "unsafe pacman sync-only command remains"
-ok "no unsafe pacman sync-only usage"
-
-assert_no_match "$retired_shell|${retired_shell}er|sdkman-for-$retired_shell|/usr/bin/$retired_shell" \
-    "retired shell references remain"
-[[ ! -e "$retired_shell" ]] || fail "retired shell module still exists"
-assert_no_match "$retired_search" "removed Thunar search command remains"
-assert_no_match "$obsolete_nvim" "obsolete Neovim configuration remains"
-ok "retired shell, Thunar search, and obsolete Neovim references are absent"
-
+if rg -n --hidden --glob '!.git/**' '/home/[[:alnum:]_-]+' .; then
+    fail "hard-coded user home path remains"
+fi
+if rg -n 'pacman[[:space:]]+-Sy([[:space:]]|$)' install.sh scripts; then
+    fail "unsafe pacman sync-only command remains"
+fi
 if find . -xtype l -not -path './.git/*' -print | grep -q .; then
     find . -xtype l -not -path './.git/*' -print >&2
-    fail "broken symlinks found in repository"
+    fail "broken symlink found in repository"
 fi
-ok "no broken symlinks in repository"
+ok "portable paths, safe Pacman usage and repository symlinks are clean"
 
-[[ -f hypr/.config/hypr/hyprpaper.conf ]] || fail "missing Hyprpaper config"
-[[ ! -e hypr/.config/hypr/hyprpaper.conf.tmpl ]] || fail "obsolete Hyprpaper template remains"
-[[ -f hypr/.config/hypr/hyprlock.conf.tmpl ]] || fail "missing Hyprlock template"
-if git ls-files --error-unmatch hypr/.config/hypr/hyprlock.conf >/dev/null 2>&1; then
-    fail "Hyprlock generated config should not be versioned in the Hypr module"
+for old_dir in "${old_stack[0]%%land}" "${old_stack[5]}" "${old_stack[6]}"; do
+    [[ ! -e "$old_dir" ]] || fail "retired module remains: $old_dir"
+done
+ok "retired desktop modules are absent"
+
+for script in install.sh scripts/*.sh; do
+    assert_file_executable "$script"
+    bash -n "$script"
+done
+ok "all shell scripts are executable and parse successfully"
+
+for package in \
+    stow niri noctalia xwayland-satellite \
+    xdg-desktop-portal-gnome xdg-desktop-portal-gtk \
+    greetd greetd-tuigreet \
+    kitty zsh zsh-autosuggestions zsh-syntax-highlighting starship zoxide \
+    eza bat fzf fd ripgrep fastfetch btop jq less git curl \
+    neovim lazygit tree-sitter-cli firefox thunar thunar-archive-plugin \
+    thunar-volman tumbler ffmpegthumbnailer poppler-glib file-roller gvfs gvfs-mtp \
+    wl-clipboard pipewire pipewire-alsa pipewire-pulse wireplumber pavucontrol \
+    networkmanager bluez bluez-utils brightnessctl playerctl upower \
+    xdg-user-dirs xdg-utils libnotify imv zathura zathura-pdf-mupdf \
+    ttf-jetbrains-mono-nerd noto-fonts noto-fonts-emoji papirus-icon-theme \
+    polkit-gnome gnome-keyring docker docker-compose; do
+    require_package "$PACMAN_FILE" "$package"
+done
+
+for package in "${old_stack[@]}" xorg-xwayland cliphist network-manager-applet blueman gsimplecal; do
+    reject_package "$PACMAN_FILE" "$package"
+    reject_package "$AUR_FILE" "$package"
+done
+
+for display_manager in gdm sddm lightdm ly; do
+    reject_package "$PACMAN_FILE" "$display_manager"
+    reject_package "$AUR_FILE" "$display_manager"
+done
+
+require_package "$AUR_FILE" bibata-cursor-theme
+require_package "$AUR_FILE" colloid-gtk-theme-git
+ok "package lists match the Niri and Noctalia desktop"
+
+mapfile -t stow_modules < <(configured_stow_modules)
+expected_modules=(desktop gtk kitty niri noctalia nvim starship thunar zsh)
+[[ "${stow_modules[*]}" == "${expected_modules[*]}" ]] ||
+    fail "unexpected Stow modules: ${stow_modules[*]}"
+
+for module in "${stow_modules[@]}"; do
+    [[ -d "$module" ]] || fail "configured Stow module does not exist: $module"
+done
+ok "Stow modules match the repository"
+
+essential_files=(
+    niri/.config/niri/config.kdl
+    niri/.config/niri/input.kdl
+    niri/.config/niri/layout.kdl
+    niri/.config/niri/rules.kdl
+    niri/.config/niri/binds.kdl
+    noctalia/.config/noctalia/config.toml
+    system/greetd/config.toml
+    scripts/configure-greetd.sh
+)
+for file in "${essential_files[@]}"; do
+    [[ -f "$file" ]] || fail "missing desktop configuration: $file"
+done
+ok "essential Niri and Noctalia files are present"
+
+grep -Fq '[terminal]' system/greetd/config.toml ||
+    fail "greetd template is missing [terminal]"
+grep -Fq '[default_session]' system/greetd/config.toml ||
+    fail "greetd template is missing [default_session]"
+grep -Fq 'user = "greeter"' system/greetd/config.toml ||
+    fail "greetd template does not use the package service user"
+for greetd_argument in \
+    '{{TUIGREET_PATH}}' '--time' '--remember' '--remember-session' \
+    '--user-menu' '--cmd' '{{NIRI_SESSION_PATH}}'; do
+    grep -Fq -- "$greetd_argument" system/greetd/config.toml ||
+        fail "greetd template is missing: $greetd_argument"
+done
+if rg -n -i 'initial_session|autologin|pass(word|wd)[[:space:]]*=' system/greetd/config.toml; then
+    fail "greetd template contains autologin or a stored password"
 fi
-grep -Fxq 'ipc = true' hypr/.config/hypr/hyprpaper.conf ||
-    fail "Hyprpaper IPC is not enabled"
-grep -Fxq 'splash = false' hypr/.config/hypr/hyprpaper.conf ||
-    fail "Hyprpaper splash is not disabled"
-if grep -Eq 'wallpaper[[:space:]]*\{|path[[:space:]]*=' hypr/.config/hypr/hyprpaper.conf; then
-    fail "Hyprpaper config contains a fixed wallpaper"
+
+python3 - <<'PY'
+import pathlib
+import tomllib
+
+template = pathlib.Path("system/greetd/config.toml").read_text()
+rendered = template.replace("{{TUIGREET_PATH}}", "/usr/bin/tuigreet")
+rendered = rendered.replace("{{NIRI_SESSION_PATH}}", "/usr/bin/niri-session")
+config = tomllib.loads(rendered)
+
+assert config["terminal"]["vt"] == 1
+assert config["default_session"]["user"] == "greeter"
+assert config["default_session"]["command"].endswith("--cmd /usr/bin/niri-session")
+PY
+ok "greetd template is valid TOML without autologin"
+
+for competing_service in gdm.service sddm.service lightdm.service ly.service; do
+    grep -Fq "$competing_service" scripts/configure-greetd.sh ||
+        fail "greetd setup does not detect $competing_service"
+done
+grep -Fq 'BACKUP="$TARGET.dotfiles-backup"' scripts/configure-greetd.sh ||
+    fail "greetd setup lacks a stable backup path"
+grep -Fq 'cmp -s -- "$rendered_config" "$TARGET"' scripts/configure-greetd.sh ||
+    fail "greetd setup is not idempotent"
+if rg -n 'rm[[:space:]]+-rf' scripts/configure-greetd.sh; then
+    fail "greetd setup must not use rm -rf"
 fi
-ok "Hyprpaper config is stable and contains no fixed wallpaper"
+ok "greetd setup detects conflicts and preserves external configuration"
 
-assert_file_executable hypr/.config/hypr/scripts/set-wallpaper.sh
-assert_file_executable hypr/.config/hypr/scripts/restore-wallpaper.sh
-bash -n hypr/.config/hypr/scripts/set-wallpaper.sh
-bash -n hypr/.config/hypr/scripts/restore-wallpaper.sh
-ok "wallpaper scripts are executable and have valid Bash syntax"
+grep -Fq 'spawn-at-startup "noctalia"' niri/.config/niri/config.kdl ||
+    fail "Niri does not start Noctalia"
+grep -Fq 'spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"' \
+    niri/.config/niri/config.kdl || fail "Polkit fallback is not started by Niri"
+grep -Fq 'polkit_agent = false' noctalia/.config/noctalia/config.toml ||
+    fail "Noctalia native Polkit agent must stay disabled while the fallback is active"
 
-for zsh_file in \
-    zsh/.zshrc \
-    zsh/.zprofile \
-    zsh/.config/zsh/aliases.zsh \
-    zsh/.config/zsh/environment.zsh \
-    zsh/.config/zsh/functions.zsh \
-    zsh/.config/zsh/integrations.zsh \
-    zsh/.config/zsh/plugins.zsh; do
+required_binds=(
+    'Mod+T hotkey-overlay-title="Open Kitty" { spawn "kitty"; }'
+    'Mod+Space hotkey-overlay-title="Noctalia Launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }'
+    'Mod+S hotkey-overlay-title="Noctalia Control Center" { spawn "noctalia" "msg" "panel-toggle" "control-center"; }'
+    'Mod+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia" "msg" "settings-toggle"; }'
+    'Alt+Tab hotkey-overlay-title="Noctalia Window Switcher" { spawn "noctalia" "msg" "window-switcher"; }'
+    'Mod+Shift+L hotkey-overlay-title="Lock Session" { spawn "noctalia" "msg" "session" "lock"; }'
+    'Mod+Q repeat=false { close-window; }'
+    'Print { spawn "noctalia" "msg" "screenshot-region"; }'
+    'Ctrl+Print { spawn "noctalia" "msg" "screenshot-fullscreen"; }'
+    'XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-up"; }'
+    'XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }'
+    'XF86AudioMute allow-when-locked=true { spawn "noctalia" "msg" "volume-mute"; }'
+    'XF86MonBrightnessUp allow-when-locked=true { spawn "noctalia" "msg" "brightness-up"; }'
+    'XF86MonBrightnessDown allow-when-locked=true { spawn "noctalia" "msg" "brightness-down"; }'
+)
+for bind in "${required_binds[@]}"; do
+    grep -Fqx -- "    $bind" niri/.config/niri/binds.kdl ||
+        fail "missing Niri binding: $bind"
+done
+ok "Niri startup, Polkit and Noctalia IPC bindings are configured"
+
+for service in NetworkManager.service bluetooth.service docker.service; do
+    grep -Fq "enable_system_service \"$service\"" scripts/enable-services.sh ||
+        fail "required system service is not configured: $service"
+done
+grep -Fq 'enable_system_service_on_boot "greetd.service"' scripts/enable-services.sh ||
+    fail "greetd is not enabled for the next boot"
+if rg -n 'enable[[:space:]]+--now[[:space:]]+.*greetd|enable_system_service "greetd.service"' \
+    scripts/enable-services.sh; then
+    fail "greetd would be started immediately"
+fi
+if rg -n 'enable_system_service "(pipewire|wireplumber|niri|noctalia)' \
+    scripts/enable-services.sh; then
+    fail "a session component is configured as a system service"
+fi
+ok "only appropriate desktop services are enabled system-wide"
+
+configure_line="$(grep -nF 'scripts/configure-greetd.sh' install.sh | cut -d: -f1)"
+services_line="$(grep -nF 'scripts/enable-services.sh' install.sh | cut -d: -f1)"
+[[ -n "$configure_line" && -n "$services_line" && "$configure_line" -lt "$services_line" ]] ||
+    fail "install.sh must configure greetd before enabling services"
+ok "installer configures greetd before enabling it"
+
+if command -v niri >/dev/null 2>&1; then
+    niri validate -c "$DOTFILES_DIR/niri/.config/niri/config.kdl"
+    ok "Niri configuration is valid"
+fi
+
+if command -v noctalia >/dev/null 2>&1; then
+    noctalia config validate "$DOTFILES_DIR/noctalia/.config/noctalia/config.toml"
+    ok "Noctalia configuration is valid"
+fi
+
+python - thunar/.config/Thunar/uca.xml <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+actions = ET.parse(sys.argv[1]).getroot().findall("action")
+by_name = {action.findtext("name", ""): action for action in actions}
+
+wallpaper = by_name.get("Set as wallpaper")
+if wallpaper is None:
+    raise SystemExit("missing Thunar wallpaper action")
+if "noctalia msg wallpaper-set" not in wallpaper.findtext("command", ""):
+    raise SystemExit("Thunar wallpaper action does not use Noctalia v5 IPC")
+
+expected = {
+    "Open Terminal Here": "kitty --directory %f",
+    "Open in Neovim": "kitty --directory %f nvim .",
+}
+for name, command in expected.items():
+    action = by_name.get(name)
+    if action is None or action.findtext("command", "") != command:
+        raise SystemExit(f"changed or missing preserved Thunar action: {name}")
+PY
+ok "Thunar actions use Noctalia and preserve development shortcuts"
+
+for zsh_file in zsh/.zshrc zsh/.zprofile zsh/.config/zsh/*.zsh; do
     [[ -f "$zsh_file" ]] || fail "missing Zsh configuration: $zsh_file"
     if command -v zsh >/dev/null 2>&1; then
         zsh -n "$zsh_file"
     fi
 done
-ok "modular Zsh configuration is present and parses when Zsh is available"
 
-assert_simple_xml thunar/.config/Thunar/uca.xml
-assert_thunar_wallpaper_actions thunar/.config/Thunar/uca.xml
-ok "Thunar wallpaper action is present, portable, and unique"
-
-assert_walker_config walker/.config/walker/config.toml
-assert_elephant_autostart hypr/.config/hypr/config/autostart.lua
-ok "Walker config and Elephant startup are stable"
-
-[[ "$(grep -c 'restore-wallpaper\.sh' hypr/.config/hypr/config/autostart.lua)" == "1" ]] ||
-    fail "Hyprland must call the wallpaper restore script exactly once"
-if grep -Eq 'hyprpaper[[:space:]]+-c|set-wallpaper\.sh|while .+hyprpaper' \
-    hypr/.config/hypr/config/autostart.lua; then
-    fail "Hyprland autostart duplicates wallpaper startup or IPC logic"
+if rg -n 'niri-session' zsh; then
+    fail "Niri session startup must not be configured in Zsh"
 fi
-ok "wallpaper startup is centralized in the repository scripts"
 
-for script in \
-    scripts/configure-default-shell.sh \
-    scripts/configure-elephant.sh \
-    scripts/disable-thunar-wallpaper-plugin.sh \
-    scripts/restore-thunar-wallpaper-plugin.sh \
-    scripts/install-dev-toolchain.sh; do
-    assert_file_executable "$script"
-    bash -n "$script"
-done
-[[ "$(grep -c 'scripts/configure-default-shell\.sh' install.sh)" == "1" ]] ||
-    fail "installer must configure the default shell exactly once"
-grep -Fq 'chsh -s "$zsh_shell" "$account_name"' scripts/configure-default-shell.sh ||
-    fail "default shell script does not apply the validated Zsh path"
-if command -v zsh >/dev/null 2>&1; then
-    bash scripts/configure-default-shell.sh --dry-run >/dev/null
-fi
-ok "default shell configuration is wired once and validates safely in dry-run mode"
-grep -Fq 'NoExtract = usr/lib/thunarx-3/thunar-wallpaper-plugin.so' docs/thunar-wallpaper-plugin.md ||
-    fail "Thunar plugin NoExtract restoration documentation is missing"
-ok "new administrative scripts exist, are executable, and are documented"
-
-require_pacman_package firefox
-require_pacman_package kitty
-require_pacman_package thunar
-require_pacman_package hyprland
-require_pacman_package hyprpaper
-require_pacman_package hyprlock
-require_pacman_package hypridle
-require_pacman_package waybar
-require_pacman_package swaync
-require_pacman_package wl-clipboard
-require_pacman_package cliphist
-require_pacman_package hyprshot
-require_pacman_package brightnessctl
-require_pacman_package wireplumber
-require_pacman_package networkmanager
-require_pacman_package network-manager-applet
-require_pacman_package blueman
-require_pacman_package polkit-gnome
-require_pacman_package gsimplecal
-require_pacman_package pavucontrol
-require_pacman_package neovim
-require_pacman_package bat
-require_pacman_package zoxide
-require_pacman_package starship
-require_pacman_package zsh
-require_pacman_package zsh-autosuggestions
-require_pacman_package zsh-syntax-highlighting
-require_pacman_package fzf
-require_pacman_package eza
-require_pacman_package ripgrep
-require_pacman_package fd
-require_pacman_package tar
-require_pacman_package bzip2
-require_pacman_package unzip
-require_pacman_package unrar
-require_pacman_package 7zip
-require_pacman_package stow
-require_pacman_package xdg-user-dirs
-require_aur_package walker-bin
-require_aur_package elephant
-require_aur_package elephant-desktopapplications
-require_aur_package elephant-providerlist
-require_aur_package elephant-runner
-require_aur_package bibata-cursor-theme
-require_aur_package colloid-gtk-theme-git
-ok "configured commands have declared packages"
-
-for package in git base-devel gcc make gzip systemd grim slurp "$retired_shell"; do
-    reject_pacman_package "$package"
-done
-grep -Eq 'pacman[[:space:]].*git[[:space:]]+base-devel' install.sh ||
-    fail "installer bootstrap must provide git and base-devel"
-ok "bootstrap-only and transitive packages are absent from the main package list"
-
-mapfile -t stow_modules < <(configured_stow_modules)
-((${#stow_modules[@]} > 0)) || fail "no Stow modules configured"
-zsh_module_found=0
-for module in "${stow_modules[@]}"; do
-    [[ -d "$module" ]] || fail "configured Stow module does not exist: $module"
-    [[ "$module" != "$retired_shell" ]] || fail "retired shell remains in Stow modules"
-    [[ "$module" == "zsh" ]] && zsh_module_found=1
-done
-((zsh_module_found)) || fail "Zsh is missing from Stow modules"
-ok "every configured Stow module exists and Zsh is enabled"
+grep -Fq 'export VOLTA_HOME="$HOME/.volta"' zsh/.config/zsh/environment.zsh ||
+    fail "Volta environment is missing from Zsh"
+grep -Fq 'export SDKMAN_DIR="$HOME/.sdkman"' zsh/.config/zsh/environment.zsh ||
+    fail "SDKMAN environment is missing from Zsh"
+grep -Fq 'run_cmd volta install pnpm' scripts/install-dev-toolchain.sh ||
+    fail "pnpm is not managed by Volta"
+ok "Zsh, SDKMAN and Volta integration is preserved"
 
 tmp_home="$(mktemp -d)"
 trap 'rm -rf -- "$tmp_home"' EXIT
-
-HOME="$tmp_home" \
-  DOTFILES_DIR="$DOTFILES_DIR" \
-  BACKUP_ROOT="$tmp_home/.dotfiles-backup/test" \
-  bash "$DOTFILES_DIR/scripts/prepare-user-files.sh" >/dev/null
-
-[[ -d "$tmp_home/Pictures/Screenshots" ]] || fail "missing generated screenshots directory"
-[[ -d "$tmp_home/Pictures/Wallpapers" ]] || fail "missing generated wallpapers directory"
-[[ -f "$tmp_home/.config/hypr/hyprlock.conf" ]] || fail "missing generated Hyprlock config"
-[[ -d "$tmp_home/.local/state/hypr" ]] || fail "missing generated Hypr state directory"
-: > "$tmp_home/Pictures/Wallpapers/mocked wallpaper (test).png"
-
-if rg -n --hidden -S "$hardcoded_home|eDP-1" "$tmp_home/.config/hypr"; then
-  fail "generated Hypr config is not portable"
-fi
-ok "prepare-user-files works against a temporary HOME"
 
 if command -v zsh >/dev/null 2>&1; then
     zsh_output="$(
         HOME="$tmp_home" XDG_CONFIG_HOME="$tmp_home/.config" \
             zsh -f -c "source '$DOTFILES_DIR/zsh/.config/zsh/environment.zsh'; source '$DOTFILES_DIR/zsh/.config/zsh/environment.zsh'"
     )"
-    [[ -z "$zsh_output" ]] || fail "Zsh environment printed output in a non-interactive shell"
-    ok "Zsh environment is idempotent and quiet in a non-interactive shell"
+    [[ -z "$zsh_output" ]] || fail "Zsh environment printed output while loading"
+    ok "Zsh environment loads quietly and idempotently"
 fi
+
+HOME="$tmp_home" DOTFILES_DIR="$DOTFILES_DIR" \
+    bash scripts/prepare-user-files.sh >/dev/null
+[[ -d "$tmp_home/Pictures/Screenshots" ]] || fail "missing screenshots directory"
+[[ -d "$tmp_home/Pictures/Wallpapers" ]] || fail "missing wallpapers directory"
+[[ ! -e "$tmp_home/.config/${old_stack[0]%%land}" ]] || fail "old config was generated"
+ok "user preparation creates only shared desktop directories"
+
+mock_bin="$tmp_home/mock-bin"
+link_test_dir="$tmp_home/.config/link-safety"
+owned_broken_absolute="$link_test_dir/owned-broken-absolute"
+owned_broken_relative="$link_test_dir/owned-broken-relative"
+owned_valid="$link_test_dir/owned-valid"
+external_broken="$link_test_dir/external-broken"
+regular_file="$link_test_dir/regular-file"
+mkdir -p -- "$mock_bin" "$link_test_dir"
+printf '#!/usr/bin/env sh\nexit 0\n' > "$mock_bin/stow"
+chmod +x "$mock_bin/stow"
+ln -s -- "$DOTFILES_DIR/retired-dotfiles/missing" "$owned_broken_absolute"
+relative_target="$(realpath -m --relative-to="$link_test_dir" \
+    "$DOTFILES_DIR/retired-dotfiles/missing-relative")"
+ln -s -- "$relative_target" "$owned_broken_relative"
+ln -s -- "$DOTFILES_DIR/README.md" "$owned_valid"
+ln -s -- "$tmp_home/external-project/missing" "$external_broken"
+printf 'keep me\n' > "$regular_file"
+
+HOME="$tmp_home" XDG_CONFIG_HOME="$tmp_home/.config" \
+    DOTFILES_DIR="$DOTFILES_DIR" PATH="$mock_bin:$PATH" \
+    bash scripts/apply-stow.sh >/dev/null
+[[ ! -L "$owned_broken_absolute" ]] || fail "absolute retired dotfiles link was not removed"
+[[ ! -L "$owned_broken_relative" ]] || fail "relative retired dotfiles link was not removed"
+[[ -L "$owned_valid" ]] || fail "valid dotfiles link was removed"
+[[ -L "$external_broken" ]] || fail "external broken link was removed"
+[[ -f "$regular_file" ]] || fail "regular config file was removed"
+ok "Stow cleanup only removes broken links owned by this repository"
 
 if command -v stow >/dev/null 2>&1; then
     stow_home="$tmp_home/stow-home"
@@ -427,89 +366,26 @@ if command -v stow >/dev/null 2>&1; then
     printf 'local kitty configuration\n' > "$stow_home/.config/kitty/kitty.conf"
 
     for stow_run in 1 2; do
-        HOME="$stow_home" \
-            DOTFILES_DIR="$DOTFILES_DIR" \
-            BACKUP_ROOT="$stow_backup" \
-            bash "$DOTFILES_DIR/scripts/apply-stow.sh" >/dev/null ||
-            fail "Stow application run $stow_run failed in the temporary HOME"
+        HOME="$stow_home" DOTFILES_DIR="$DOTFILES_DIR" BACKUP_ROOT="$stow_backup" \
+            bash scripts/apply-stow.sh >/dev/null ||
+            fail "Stow application run $stow_run failed"
     done
 
-    [[ "$(readlink -f -- "$stow_home/.zshrc")" == "$(readlink -f -- "$DOTFILES_DIR/zsh/.zshrc")" ]] ||
-        fail "Stow did not link the Zsh configuration"
-    [[ "$(readlink -f -- "$stow_home/.config/kitty/kitty.conf")" == "$(readlink -f -- "$DOTFILES_DIR/kitty/.config/kitty/kitty.conf")" ]] ||
-        fail "Stow did not link the Kitty configuration"
+    [[ "$(readlink -f -- "$stow_home/.config/niri/config.kdl")" == \
+        "$(readlink -f -- "$DOTFILES_DIR/niri/.config/niri/config.kdl")" ]] ||
+        fail "Stow did not link Niri"
+    [[ "$(readlink -f -- "$stow_home/.config/noctalia/config.toml")" == \
+        "$(readlink -f -- "$DOTFILES_DIR/noctalia/.config/noctalia/config.toml")" ]] ||
+        fail "Stow did not link Noctalia"
     [[ "$(cat "$stow_backup/.zshrc")" == "local zsh configuration" ]] ||
         fail "Stow did not preserve the existing Zsh configuration"
     [[ "$(cat "$stow_backup/.config/kitty/kitty.conf")" == "local kitty configuration" ]] ||
         fail "Stow did not preserve the existing Kitty configuration"
     [[ "$(find "$stow_backup" -type f | wc -l)" == "2" ]] ||
-        fail "Stow backups were duplicated during the second run"
-
-    ok "Stow backs up conflicts, links every module, and reruns safely in a temporary HOME"
+        fail "Stow backups were duplicated"
+    ok "Stow links the new modules idempotently and preserves conflicts"
 else
-    ok "Stow application test skipped because stow is not installed"
+    ok "Stow application test skipped because GNU Stow is not installed"
 fi
-
-HOME="$tmp_home" \
-    XDG_STATE_HOME="$tmp_home/.local/state" \
-    DRY_RUN=1 \
-    bash "$DOTFILES_DIR/hypr/.config/hypr/scripts/set-wallpaper.sh" "$tmp_home/Pictures/Wallpapers/mocked wallpaper (test).png" >/dev/null 2>&1 ||
-    fail "set-wallpaper dry run failed"
-[[ ! -e "$tmp_home/.local/state/hypr/current-wallpaper" ]] ||
-    fail "dry run changed wallpaper state"
-[[ ! -e "$tmp_home/.config/hypr/current-wallpaper" ]] ||
-    fail "dry run changed wallpaper symlink"
-ok "set-wallpaper dry run does not change user configuration"
-
-mock_bin="$tmp_home/mock-bin"
-mock_log="$tmp_home/mock.log"
-mock_ready="$tmp_home/hyprpaper.ready"
-mkdir -p -- "$mock_bin"
-cat > "$mock_bin/hyprpaper" <<'MOCK_HYPRPAPER'
-#!/usr/bin/env sh
-printf 'hyprpaper %s\n' "$*" >> "$MOCK_LOG"
-touch "$MOCK_READY"
-MOCK_HYPRPAPER
-cat > "$mock_bin/hyprctl" <<'MOCK_HYPRCTL'
-#!/usr/bin/env sh
-printf 'hyprctl %s\n' "$*" >> "$MOCK_LOG"
-if [ "$1" = "hyprpaper" ] && [ "$2" = "listactive" ]; then
-    [ -e "$MOCK_READY" ]
-    exit $?
-fi
-exit 0
-MOCK_HYPRCTL
-chmod +x "$mock_bin/hyprpaper" "$mock_bin/hyprctl"
-
-HOME="$tmp_home" \
-    XDG_STATE_HOME="$tmp_home/.local/state" \
-    PATH="$mock_bin:$PATH" \
-    MOCK_LOG="$mock_log" \
-    MOCK_READY="$mock_ready" \
-    bash "$DOTFILES_DIR/hypr/.config/hypr/scripts/set-wallpaper.sh" "$tmp_home/Pictures/Wallpapers/mocked wallpaper (test).png" >/dev/null ||
-    fail "set-wallpaper mocked run failed"
-
-grep -Fq 'hyprpaper -c' "$mock_log" || fail "set-wallpaper did not start Hyprpaper when IPC was unavailable"
-grep -Fq 'hyprctl hyprpaper wallpaper' "$mock_log" || fail "set-wallpaper did not call Hyprpaper IPC"
-[[ "$(cat "$tmp_home/.local/state/hypr/current-wallpaper")" == "$tmp_home/Pictures/Wallpapers/mocked wallpaper (test).png" ]] ||
-    fail "set-wallpaper did not persist the selected wallpaper"
-[[ -L "$tmp_home/.config/hypr/current-wallpaper" ]] ||
-    fail "set-wallpaper did not create the current wallpaper symlink"
-[[ "$(readlink -- "$tmp_home/.config/hypr/current-wallpaper")" == "$tmp_home/Pictures/Wallpapers/mocked wallpaper (test).png" ]] ||
-    fail "current wallpaper symlink points to the wrong image"
-
-hyprpaper_start_count="$(grep -c '^hyprpaper ' "$mock_log")"
-HOME="$tmp_home" \
-    XDG_STATE_HOME="$tmp_home/.local/state" \
-    PATH="$mock_bin:$PATH" \
-    MOCK_LOG="$mock_log" \
-    MOCK_READY="$mock_ready" \
-    bash "$DOTFILES_DIR/hypr/.config/hypr/scripts/restore-wallpaper.sh" >/dev/null ||
-    fail "restore-wallpaper mocked run failed"
-[[ "$(grep -c '^hyprpaper ' "$mock_log")" == "$hyprpaper_start_count" ]] ||
-    fail "restore-wallpaper started a duplicate Hyprpaper process"
-[[ "$(grep -c 'hyprctl hyprpaper wallpaper' "$mock_log")" == "2" ]] ||
-    fail "restore-wallpaper did not reapply the saved wallpaper"
-ok "wallpaper scripts handle spaced paths and restore idempotently with mocked IPC"
 
 ok "safe structure test completed"

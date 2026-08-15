@@ -83,8 +83,6 @@ credentials/
 **/*_history
 
 # Generated user-specific files
-hypr/.config/hypr/hyprlock.conf
-hypr/.config/hypr/current-wallpaper
 gtk/.config/gtk-4.0/assets
 gtk/.config/gtk-4.0/gtk.css
 gtk/.config/gtk-4.0/gtk-dark.css

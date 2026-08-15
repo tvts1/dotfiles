@@ -1,0 +1,7 @@
+# Managed by dotfiles configure-greetd.sh
+[terminal]
+vt = 1
+
+[default_session]
+command = "{{TUIGREET_PATH}} --time --remember --remember-session --user-menu --cmd {{NIRI_SESSION_PATH}}"
+user = "greeter"

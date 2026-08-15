@@ -7,7 +7,9 @@ Arch's `thunar` package includes:
 ```
 
 That plugin adds Thunar's native `Set as wallpaper` menu item. These dotfiles
-keep the custom Hyprpaper action and disable the native plugin.
+keep a custom action that calls Noctalia v5 through
+`noctalia msg wallpaper-set`, so the native plugin is disabled to avoid a
+duplicate menu entry.
 
 Disable:
 

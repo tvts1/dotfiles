@@ -58,8 +58,8 @@ bash "$DOTFILES_DIR/scripts/install-packages.sh"
 bash "$DOTFILES_DIR/scripts/prepare-user-files.sh"
 bash "$DOTFILES_DIR/scripts/apply-stow.sh"
 bash "$DOTFILES_DIR/scripts/configure-default-shell.sh"
-bash "$DOTFILES_DIR/scripts/configure-elephant.sh"
 bash "$DOTFILES_DIR/scripts/disable-thunar-wallpaper-plugin.sh"
+bash "$DOTFILES_DIR/scripts/configure-greetd.sh"
 bash "$DOTFILES_DIR/scripts/enable-services.sh"
 
 if ((WITH_DEV_TOOLS)); then

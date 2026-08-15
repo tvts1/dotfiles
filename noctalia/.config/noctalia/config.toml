@@ -1,0 +1,37 @@
+# Noctalia v5 native configuration. GUI changes are stored separately under
+# ~/.local/state/noctalia/settings.toml and override this curated base.
+[theme]
+mode = "dark"
+source = "wallpaper"
+wallpaper_scheme = "m3-content"
+
+[shell]
+clipboard_enabled = true
+polkit_agent = false
+
+[shell.screenshot]
+save_to_file = true
+directory = "~/Pictures/Screenshots"
+filename_pattern = "Screenshot from %Y-%m-%d %H-%M-%S"
+copy_to_clipboard = true
+
+[notification]
+enable_daemon = true
+
+[wallpaper]
+enabled = true
+directory = "~/Pictures/Wallpapers"
+fill_mode = "crop"
+
+[lockscreen]
+enabled = true
+
+[idle.behavior.lock]
+enabled = true
+timeout = 600
+action = "lock"
+
+[idle.behavior.screen-off]
+enabled = true
+timeout = 660
+action = "screen_off"

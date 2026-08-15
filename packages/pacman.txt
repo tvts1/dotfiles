@@ -1,29 +1,26 @@
 # Dotfiles
 stow
 
-# Hyprland
-hyprland
-hyprpaper
-hyprlock
-hypridle
-xdg-desktop-portal-hyprland
-xorg-xwayland
+# Niri / Desktop
+niri
+noctalia
+xwayland-satellite
+xdg-desktop-portal-gnome
+xdg-desktop-portal-gtk
 
-# Desktop bar and notifications
-waybar
-swaync
-libnotify
+# Login / Session
+greetd
+greetd-tuigreet
 
-# Terminal and shell
+# Terminal / Shell
 kitty
 zsh
 zsh-autosuggestions
 zsh-syntax-highlighting
 starship
 zoxide
-firefox
 
-# Command-line utilities
+# CLI
 eza
 bat
 fzf
@@ -32,16 +29,15 @@ ripgrep
 fastfetch
 btop
 jq
+less
 unzip
 zip
 tar
 unrar
 7zip
 
-# Clipboard and screenshots (hyprshot pulls grim and slurp)
+# Clipboard
 wl-clipboard
-cliphist
-hyprshot
 
 # Audio
 pipewire
@@ -52,14 +48,12 @@ pavucontrol
 
 # Network
 networkmanager
-network-manager-applet
 
 # Bluetooth
 bluez
 bluez-utils
-blueman
 
-# File manager
+# Files
 thunar
 thunar-archive-plugin
 thunar-volman
@@ -73,11 +67,13 @@ gvfs-mtp
 # Desktop integration
 xdg-user-dirs
 xdg-utils
+libnotify
 polkit-gnome
+gnome-keyring
 nwg-look
-gsimplecal
 
-# Images and documents
+# Media
+firefox
 imv
 zathura
 zathura-pdf-mupdf
@@ -93,8 +89,14 @@ brightnessctl
 playerctl
 upower
 
-# Neovim and development tools
+# Development
+git
+curl
 neovim
 lazygit
 tree-sitter-cli
 bzip2
+
+# Containers
+docker
+docker-compose

@@ -8,13 +8,12 @@ source "$SCRIPT_DIR/common.sh"
 modules=(
     desktop
     gtk
-    hypr
     kitty
+    niri
+    noctalia
     nvim
     starship
     thunar
-    walker
-    waybar
     zsh
 )
 
@@ -32,6 +31,27 @@ for module in "${modules[@]}"; do
     fi
 done
 
+remove_broken_dotfiles_links() {
+    local link raw_target resolved_target
+    local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+    [[ -d "$config_home" ]] || return 0
+
+    while IFS= read -r -d '' link; do
+        raw_target="$(readlink -- "$link")"
+        if [[ "$raw_target" == /* ]]; then
+            resolved_target="$(readlink -m -- "$raw_target")"
+        else
+            resolved_target="$(readlink -m -- "$(dirname -- "$link")/$raw_target")"
+        fi
+
+        if [[ "$resolved_target" == "$DOTFILES_DIR/"* ]]; then
+            unlink -- "$link"
+            warning "Removed retired dotfiles link: $link"
+        fi
+    done < <(find "$config_home" -xtype l -print0)
+}
+
 target_points_to_source() {
     local target="$1"
     local source="$2"
@@ -48,8 +68,6 @@ source_is_generated_or_ignored() {
     local rel="$2"
 
     case "$module:$rel" in
-        hypr:.config/hypr/hyprlock.conf | \
-        hypr:.config/hypr/current-wallpaper | \
         gtk:.config/gtk-4.0/assets | \
         gtk:.config/gtk-4.0/gtk.css | \
         gtk:.config/gtk-4.0/gtk-dark.css)
@@ -93,10 +111,11 @@ detect_and_backup_conflicts() {
         find "$DOTFILES_DIR/$module" \( -type f -o -type l \) \
             ! -name '.stow-local-ignore' \
             ! -name '*.tmpl' \
-            ! -path "$DOTFILES_DIR/hypr/.config/hypr/hyprlock.conf" \
             -print0
     )
 }
+
+remove_broken_dotfiles_links
 
 for module in "${modules[@]}"; do
     detect_and_backup_conflicts "$module"
