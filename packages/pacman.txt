@@ -70,7 +70,7 @@ xdg-utils
 libnotify
 polkit-gnome
 gnome-keyring
-nwg-look
+adw-gtk-theme
 
 # Media
 firefox

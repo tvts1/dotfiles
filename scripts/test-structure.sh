@@ -6,7 +6,6 @@ DOTFILES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export DOTFILES_DIR
 
 PACMAN_FILE="$DOTFILES_DIR/packages/pacman.txt"
-AUR_FILE="$DOTFILES_DIR/packages/aur.txt"
 
 fail() {
     printf 'FAIL: %s\n' "$1" >&2
@@ -85,6 +84,23 @@ if rg -n -i --hidden --glob '!.git/**' "$old_pattern" .; then
 fi
 ok "retired desktop references are absent"
 
+retired_visual=('col''loid' 'bi''bata')
+retired_visual_pattern="$(IFS='|'; printf '%s' "${retired_visual[*]}")"
+if rg -n -i --hidden --glob '!.git/**' "$retired_visual_pattern" .; then
+    fail "retired visual theme references remain"
+fi
+
+aur_helpers=('pa''ru' 'y''ay')
+aur_helper_pattern="$(IFS='|'; printf '%s' "${aur_helpers[*]}")"
+if rg -n -i --hidden --glob '!.git/**' --glob '!scripts/test-structure.sh' \
+    "$aur_helper_pattern" .; then
+    fail "an AUR helper is still required"
+fi
+[[ ! -e packages/aur.txt ]] || fail "AUR package list should not exist"
+aur_install_script="scripts/install-${aur_helpers[0]}.sh"
+[[ ! -e "$aur_install_script" ]] || fail "AUR helper installer remains"
+ok "retired themes and AUR helper dependencies are absent"
+
 if rg -n --hidden --glob '!.git/**' '/home/[[:alnum:]_-]+' .; then
     fail "hard-coded user home path remains"
 fi
@@ -120,23 +136,20 @@ for package in \
     networkmanager bluez bluez-utils brightnessctl playerctl upower \
     xdg-user-dirs xdg-utils libnotify imv zathura zathura-pdf-mupdf \
     ttf-jetbrains-mono-nerd noto-fonts noto-fonts-emoji papirus-icon-theme \
-    polkit-gnome gnome-keyring docker docker-compose; do
+    polkit-gnome gnome-keyring adw-gtk-theme docker docker-compose; do
     require_package "$PACMAN_FILE" "$package"
 done
 
-for package in "${old_stack[@]}" xorg-xwayland cliphist network-manager-applet blueman gsimplecal; do
+for package in "${old_stack[@]}" xorg-xwayland cliphist network-manager-applet blueman \
+    gsimplecal nwg-look "${retired_visual[@]}"; do
     reject_package "$PACMAN_FILE" "$package"
-    reject_package "$AUR_FILE" "$package"
 done
 
 for display_manager in gdm sddm lightdm ly; do
     reject_package "$PACMAN_FILE" "$display_manager"
-    reject_package "$AUR_FILE" "$display_manager"
 done
 
-require_package "$AUR_FILE" bibata-cursor-theme
-require_package "$AUR_FILE" colloid-gtk-theme-git
-ok "package lists match the Niri and Noctalia desktop"
+ok "official package list matches the Niri and Noctalia desktop"
 
 mapfile -t stow_modules < <(configured_stow_modules)
 expected_modules=(desktop gtk kitty niri noctalia nvim starship thunar zsh)
@@ -213,6 +226,25 @@ grep -Fq 'spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-ag
     niri/.config/niri/config.kdl || fail "Polkit fallback is not started by Niri"
 grep -Fq 'polkit_agent = false' noctalia/.config/noctalia/config.toml ||
     fail "Noctalia native Polkit agent must stay disabled while the fallback is active"
+for template in gtk3 gtk4 kitty; do
+    grep -Fq "\"$template\"" noctalia/.config/noctalia/config.toml ||
+        fail "Noctalia built-in template is not enabled: $template"
+done
+grep -Fq 'enable_community_templates = false' noctalia/.config/noctalia/config.toml ||
+    fail "Noctalia community templates must remain disabled"
+
+for settings_file in gtk/.config/gtk-3.0/settings.ini gtk/.config/gtk-4.0/settings.ini; do
+    grep -Fq 'gtk-icon-theme-name=Papirus-Dark' "$settings_file" ||
+        fail "Papirus icon theme is missing from $settings_file"
+    if rg -n -i 'gtk-theme-name|gtk-cursor-theme|prefer-dark-theme' "$settings_file"; then
+        fail "Noctalia-managed GTK appearance is hard-coded in $settings_file"
+    fi
+done
+grep -Fq 'include themes/noctalia.conf' kitty/.config/kitty/kitty.conf ||
+    fail "Kitty does not include Noctalia-generated colors"
+[[ ! -e kitty/.config/kitty/no-preference-theme.auto.conf ]] ||
+    fail "a competing static Kitty color theme remains"
+ok "Noctalia owns GTK and Kitty colors while Papirus remains configured"
 
 required_binds=(
     'Mod+T hotkey-overlay-title="Open Kitty" { spawn "kitty"; }'
@@ -327,6 +359,7 @@ HOME="$tmp_home" DOTFILES_DIR="$DOTFILES_DIR" \
     bash scripts/prepare-user-files.sh >/dev/null
 [[ -d "$tmp_home/Pictures/Screenshots" ]] || fail "missing screenshots directory"
 [[ -d "$tmp_home/Pictures/Wallpapers" ]] || fail "missing wallpapers directory"
+[[ ! -e "$tmp_home/.config/gtk-4.0" ]] || fail "user preparation created GTK theme files"
 [[ ! -e "$tmp_home/.config/${old_stack[0]%%land}" ]] || fail "old config was generated"
 ok "user preparation creates only shared desktop directories"
 

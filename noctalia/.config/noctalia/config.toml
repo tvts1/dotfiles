@@ -5,6 +5,12 @@ mode = "dark"
 source = "wallpaper"
 wallpaper_scheme = "m3-content"
 
+[theme.templates]
+builtin_ids = ["gtk3", "gtk4", "kitty"]
+community_ids = []
+enable_builtin_templates = true
+enable_community_templates = false
+
 [shell]
 clipboard_enabled = true
 polkit_agent = false

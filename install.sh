@@ -53,7 +53,6 @@ log "Starting Arch Linux dotfiles installation"
 log "Installing bootstrap dependencies"
 sudo pacman -Syu --needed --noconfirm git base-devel
 
-bash "$DOTFILES_DIR/scripts/install-paru.sh"
 bash "$DOTFILES_DIR/scripts/install-packages.sh"
 bash "$DOTFILES_DIR/scripts/prepare-user-files.sh"
 bash "$DOTFILES_DIR/scripts/apply-stow.sh"

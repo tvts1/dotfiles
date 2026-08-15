@@ -16,6 +16,8 @@ silenciosamente.
 - Thunar, Firefox, PipeWire, NetworkManager e BlueZ
 - GNOME Keyring como Secret Service para credenciais de aplicações
 - greetd com tuigreet para login em `niri-session`
+- Noctalia para paleta, modos claro/escuro e cores de GTK/Kitty
+- adw-gtk3 como tema GTK base e Papirus como tema de ícones
 
 O Kitty usa o shell padrão da conta. O instalador configura o Zsh como shell
 de login e mantém SDKMAN e Volta em módulos próprios da configuração do Zsh.
@@ -37,11 +39,11 @@ Para instalar também Java/Maven via SDKMAN e Node/npm/pnpm via Volta:
 ./install.sh --with-dev-tools
 ```
 
-O instalador usa Pacman, Paru e GNU Stow. Conflitos são movidos para
-`~/.dotfiles-backup/<timestamp>/`. Ele habilita NetworkManager, Bluetooth,
-Docker, o timer de TRIM e o greetd; não adiciona automaticamente o usuário ao
-grupo `docker`. O greetd é apenas habilitado para o próximo boot e não é
-iniciado sobre a sessão gráfica atual.
+O instalador usa Pacman e GNU Stow, sem dependências do AUR. Conflitos são
+movidos para `~/.dotfiles-backup/<timestamp>/`. Ele habilita NetworkManager,
+Bluetooth, Docker, o timer de TRIM e o greetd; não adiciona automaticamente o
+usuário ao grupo `docker`. O greetd é apenas habilitado para o próximo boot e
+não é iniciado sobre a sessão gráfica atual.
 
 O pacote `xwayland-satellite` é detectado e integrado automaticamente pelo
 Niri atual.
@@ -78,6 +80,9 @@ desktop  gtk  kitty  niri  noctalia  nvim  starship  thunar  zsh
 O arquivo declarativo do Noctalia fica em
 `~/.config/noctalia/config.toml`. Alterações feitas pela interface são gravadas
 separadamente em `~/.local/state/noctalia/settings.toml` e têm precedência.
+Os templates oficiais `gtk3`, `gtk4` e `kitty` geram somente arquivos de cores
+locais; fonte, espaçamento e demais preferências do Kitty permanecem neste
+repositório. O cursor usa o padrão do sistema.
 
 ## Atalhos
 

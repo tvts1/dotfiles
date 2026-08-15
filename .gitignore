@@ -83,6 +83,8 @@ credentials/
 **/*_history
 
 # Generated user-specific files
-gtk/.config/gtk-4.0/assets
+gtk/.config/gtk-3.0/gtk.css
+gtk/.config/gtk-3.0/noctalia.css
 gtk/.config/gtk-4.0/gtk.css
-gtk/.config/gtk-4.0/gtk-dark.css
+gtk/.config/gtk-4.0/noctalia.css
+kitty/.config/kitty/themes/noctalia.conf

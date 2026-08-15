@@ -21,6 +21,14 @@ window-rule {
     open-floating true
 }
 
+// Kitty uses transparency.
+// Prevent Niri's focus ring/border background from showing
+// through the transparent terminal background.
+window-rule {
+    match app-id=r#"^kitty$"#
+    draw-border-with-background false
+}
+
 debug {
     // Required for notification actions and window activation from Noctalia.
     honor-xdg-activation-with-invalid-serial
