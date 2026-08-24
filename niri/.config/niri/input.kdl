@@ -1,8 +1,10 @@
 input {
     keyboard {
         xkb {
-            layout "us"
+            layout "br"
+            variant "abnt2"
         }
+
         numlock
     }
 
@@ -10,6 +12,4 @@ input {
         tap
         natural-scroll
     }
-
-    focus-follows-mouse max-scroll-amount="0%"
 }

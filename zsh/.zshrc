@@ -45,3 +45,7 @@ bindkey -e
 # prompt integrations have been initialized.
 [[ -r "$ZSH_CONFIG_DIR/plugins.zsh" ]] &&
   source "$ZSH_CONFIG_DIR/plugins.zsh"
+
+# SDKMAN
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
