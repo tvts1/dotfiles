@@ -1,90 +1,30 @@
-# ==========================================================
-# Editor
-# ==========================================================
-
+# Editor e temporários
 *.swp
 *.swo
 *~
 Session.vim
 .nvimlog
-
-# ==========================================================
-# Sistema
-# ==========================================================
-
-.DS_Store
-Thumbs.db
-
-# ==========================================================
-# Logs
-# ==========================================================
-
-*.log
-
-# ==========================================================
-# Cache
-# ==========================================================
-
-.cache/
-.cache/**
-**/.cache/
-**/cache/
-
-# ==========================================================
-# Históricos
-# ==========================================================
-
-**/history
-**/recently-used.xbel
-
-# ==========================================================
-# Temporários
-# ==========================================================
-
 *.tmp
 *.bak
 *.orig
+.DS_Store
 
-# ==========================================================
-# Variáveis de ambiente
-# ==========================================================
-
+# Segredos locais
 .env
-.env.*
-!.env.example
-
-# ==========================================================
-# Chaves e certificados
-# ==========================================================
-
-*.pem
-*.key
-*.crt
-*.cer
-*.der
-*.p12
-*.pfx
-*.kdbx
-*.age
-*.gpg
-*.asc
-.ssh/
-**/.ssh/
-.gnupg/
-**/.gnupg/
-
-# ==========================================================
-# Secrets
-# ==========================================================
-
+.env.local
+.env.*.local
 secrets/
 private/
-credentials/
-**/*_history
 
-# Generated user-specific files
-gtk/.config/gtk-3.0/gtk.css
-gtk/.config/gtk-3.0/noctalia.css
-gtk/.config/gtk-4.0/gtk.css
-gtk/.config/gtk-4.0/noctalia.css
-kitty/.config/kitty/themes/noctalia.conf
+# Estado e arquivos produzidos pelas aplicações
+home/.cache/
+home/.local/state/
+home/.local/share/fish/
+home/.config/fish/fish_variables
+home/.config/fish/completions/asdf.fish
+home/.config/gtk-3.0/gtk.css
+home/.config/gtk-3.0/noctalia.css
+home/.config/gtk-4.0/gtk.css
+home/.config/gtk-4.0/noctalia.css
+home/.config/kitty/themes/noctalia.conf
+home/.config/kitty/*-theme.auto.conf

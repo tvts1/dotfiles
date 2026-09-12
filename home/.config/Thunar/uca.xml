@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>preferences-desktop-wallpaper</icon>
+	<name>Set as wallpaper (Noctalia)</name>
+	<submenu></submenu>
+	<unique-id>1783999000000000-1</unique-id>
+	<command>noctalia msg wallpaper-set %f</command>
+	<description>Set the selected image as the wallpaper</description>
+	<range>1-1</range>
+	<patterns>*.jpg;*.jpeg;*.png;*.webp;*.jxl;*.JPG;*.JPEG;*.PNG;*.WEBP;*.JXL</patterns>
+	<image-files/>
+</action>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>1783989048238571-1</unique-id>
+	<command>kitty --directory %f</command>
+	<description>Open a terminal in this directory</description>
+	<range>1-1</range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>nvim</icon>
+	<name>Open in Neovim</name>
+	<submenu></submenu>
+	<unique-id>1783993487828022-1</unique-id>
+	<command>kitty --directory %f fish -c 'exec nvim .'</command>
+	<description>Open this directory as a project</description>
+	<range>1-1</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+</actions>
